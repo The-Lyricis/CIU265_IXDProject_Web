@@ -1,0 +1,230 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Lora:ital@0;1&display=swap');
+
+:root {
+    --paper-bg: #f9f7f1;
+    --ink-color: #1a1a1a;
+}
+
+body {
+    background-color: #dcdcdc;
+    margin: 0;
+    padding: 20px;
+    font-family: 'Lora', serif;
+    color: var(--ink-color);
+}
+
+.newspaper-container {
+    background-color: var(--paper-bg);
+    max-width: 1000px;
+    min-height: calc(100vh - 120px);
+    margin: 0 auto;
+    padding: 40px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    border: 1px solid #ccc;
+}
+
+/* Header styles */
+.newspaper-header {
+    text-align: center;
+    border-bottom: 4px solid var(--ink-color);
+    margin-bottom: 20px;
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--ink-color);
+}
+
+.newspaper-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.5rem;
+    margin: 10px 0;
+    letter-spacing: 0;
+}
+
+.header-info {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+/* Main layout */
+.main-content {
+    display: flex;
+    gap: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--ink-color);
+}
+
+/* Left photo section: newspaper-style layout */
+.photo-section {
+    flex: 1.2;
+}
+
+.section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    border-bottom: 1px solid var(--ink-color);
+    margin-bottom: 15px;
+}
+
+.lead-story {
+    min-height: 560px;
+}
+
+.lead-story h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    line-height: 1.05;
+    margin: 14px 0 8px;
+    text-transform: uppercase;
+}
+
+.lead-story p {
+    line-height: 1.45;
+    text-align: justify;
+}
+
+.lead-subtitle {
+    font-weight: bold;
+    font-style: italic;
+}
+
+.lead-figure {
+    margin: 0;
+}
+
+.lead-figure img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    filter: sepia(0.8) contrast(1.1) grayscale(0.3); /* Newspaper print filter */
+    border: 1px solid #333;
+    padding: 3px;
+    background: white;
+}
+
+.lead-figure figcaption {
+    margin-top: 4px;
+    font-size: 0.75rem;
+    font-style: italic;
+    text-align: right;
+}
+
+.empty-slot,
+.image-placeholder {
+    min-height: 220px;
+    border: 1px dashed #777;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #555;
+    text-align: center;
+    font-style: italic;
+    background: rgba(0,0,0,0.025);
+}
+
+.image-placeholder {
+    aspect-ratio: 4 / 3;
+    min-height: 0;
+}
+
+/* Right news section */
+.news-section {
+    flex: 1;
+    border-left: 1px solid #ddd;
+    padding-left: 20px;
+}
+
+.news-section h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    line-height: 1.1;
+    margin-top: 0;
+}
+
+.author { font-style: italic; font-size: 0.9rem; margin-bottom: 10px; }
+
+.news-section p {
+    line-height: 1.4;
+    text-align: justify;
+    column-count: 1; /* Set to 2 for narrower columns */
+}
+
+.article-list {
+    display: grid;
+    gap: 14px;
+}
+
+.sub-article {
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 12px;
+}
+
+.sub-article h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    line-height: 1.15;
+    margin: 0 0 6px;
+    text-transform: uppercase;
+}
+
+.sub-article p {
+    margin: 0 0 8px;
+}
+
+/* Bottom poetry section */
+.poetry-section {
+    margin-top: 20px;
+    padding-top: 20px;
+}
+
+.poetry-box {
+    border: 1px solid var(--ink-color);
+    padding: 20px;
+    background: rgba(0,0,0,0.02);
+}
+
+.poetry-content {
+    text-align: center;
+    font-style: italic;
+}
+
+blockquote {
+    font-size: 1.2rem;
+    margin: 0 0 10px 0;
+}
+
+@media (max-width: 780px) {
+    body {
+        padding: 10px;
+    }
+
+    .newspaper-container {
+        padding: 20px;
+    }
+
+    .header-top,
+    .header-info,
+    .main-content {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .newspaper-header h1 {
+        font-size: 2.5rem;
+    }
+
+    .news-section {
+        border-left: 0;
+        border-top: 1px solid #ddd;
+        padding-left: 0;
+        padding-top: 20px;
+    }
+}

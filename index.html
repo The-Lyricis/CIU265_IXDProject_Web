@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gothenburg Posten</title>
+    <link rel="stylesheet" href="newspaper.css">
+</head>
+<body>
+    <div class="newspaper-container">
+        <header class="newspaper-header">
+            <div class="header-top">
+                <span>Founded 1884</span>
+                <h1>Gothenburg Posten</h1>
+                <span>25 SEK</span>
+            </div>
+            <div class="header-info">
+                <span id="current-date">Monday 27 April 2026</span>
+                <span id="realtime-status">CONNECTING TO NEWSROOM</span>
+                <span id="session-status">SESSION: --</span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="photo-section">
+                <h2 class="section-title">TODAY'S FRONT PAGE</h2>
+                <div class="lead-story" id="lead-story">
+                    <div class="empty-slot">Waiting for the first VR interview</div>
+                </div>
+            </section>
+
+            <section class="news-section">
+                <div id="article-list" class="article-list"></div>
+            </section>
+        </main>
+
+        <footer class="poetry-section">
+            <div class="poetry-box">
+                <h2>POETRY CORNER</h2>
+                <div class="poetry-content">
+                    <blockquote>
+                        "Every city keeps a second edition.<br>
+                        It waits in memory, in rumor, in light.<br>
+                        Today the streets speak again,<br>
+                        and the page learns how to listen."
+                    </blockquote>
+                    <cite>The Public Editor, 2026</cite>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script type="module" src="newspaper.js"></script>
+</body>
+</html>
