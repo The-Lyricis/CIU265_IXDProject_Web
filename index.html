@@ -5,13 +5,16 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Gothenburg Posten</title>
         <link rel="stylesheet" href="newspaper.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Alfa+Slab+One&display=swap">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Playfair+Display+SC&display=swap">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Serif&display=swap">
     </head>
     <body>
         <div class="newspaper-container">
             <header class="newspaper-header">
                 <div class="header-top">
                     <span>Founded 1884</span>
-                    <h1>Gothenburg Posten</h1>
+                    <h1 style="grid-area:1 / 2 / 2 / 3;">Göteborgs-Posten</h1>
                     <span>25 SEK</span>
                 </div>
                 <div class="header-info pinegrow-ui-helper-relative">
@@ -24,7 +27,6 @@
                 <section class="newspaper-panel citizen-lens-panel">
                     <h2 class="section-title">CITIZEN LENS</h2>
                     <p class="section-intro">The day's headlines, framed by the people who live them.</p>
-
                     <div class="lead-story" id="lead-story">
                         <div class="best-news">
                             <div class="best-news-photo" id="best-news-photo">
@@ -37,11 +39,9 @@
                                     Readers cast their ballots in the photo booth across the
                                     square, and the leading frame rises to the front page in
                                     real time. Placeholder copy &mdash; the running narrative
-                                    will be written here as the story develops.
-                                </p>
+                                    will be written here as the story develops. </p>
                             </div>
                         </div>
-
                         <div class="citizen-photo-grid" id="citizen-photo-grid">
                             <div class="citizen-slot" data-slot="0"></div>
                             <div class="citizen-slot" data-slot="1"></div>
@@ -55,7 +55,7 @@
                     </div>
                 </section>
                 <section class="newspaper-panel everyone-edits-panel">
-                    <h2 class="section-title">EVERYONE EDITS</h2>
+                    <h2 class="section-title"><b>EVERYONE EDITS</b></h2>
                     <p class="section-intro">Readers take the editor's chair and write the news themselves.</p>
                     <div id="article-list" class="article-list"></div>
                 </section>
@@ -71,11 +71,17 @@
                               data-intro       ← 解锁后显示的简介
                               data-photo       ← 解锁后显示的头像图片路径（可留空）
                         -->
-                        <article class="legend-card locked"
-                                 data-subject-id="ferdinand_lundquist"
-                                 data-name="Ferdinand Lundquist"
-                                 data-title="Merchant &middot; Department store founder"
-                                 data-intro="Hear the story behind one of Gothenburg's most enduring family businesses.">
+                        <article class="legend-card locked" data-subject-id="ferdinand_lundquist" data-name="Ferdinand Lundquist" data-title="Merchant &middot; Department store founder" data-intro="Hear the story behind one of Gothenburg's most enduring family businesses.">
+                            <div class="legend-photo">
+                                <div class="legend-photo-placeholder">Awaiting visitor</div>
+                            </div>
+                            <div class="legend-copy">
+                                <h3 class="legend-name">&#8212; &#8212; &#8212;</h3>
+                                <p class="legend-title">Identity locked</p>
+                                <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
+                            </div>
+                        </article>
+                        <article class="legend-card locked" data-subject-id="harry_hjorne" data-name="HARRY HJÖRNE" data-title="Title &middot; Profession" data-intro="A short introduction for today's visitor.">
                             <div class="legend-photo">
                                 <div class="legend-photo-placeholder">Awaiting visitor</div>
                             </div>
@@ -85,11 +91,7 @@
                                 <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
                             </div>
                         </article>
-                        <article class="legend-card locked"
-                                 data-subject-id="harry_hjorne"
-                                 data-name="HARRY HJÖRNE"
-                                 data-title="Title &middot; Profession"
-                                 data-intro="A short introduction for today's visitor.">
+                        <article class="legend-card locked" data-subject-id="ingrid_segerstedt_wiberg" data-name="INGRID SEGERSTEDT-WIBERG" data-title="Title &middot; Profession" data-intro="A short introduction for today's visitor.">
                             <div class="legend-photo">
                                 <div class="legend-photo-placeholder">Awaiting visitor</div>
                             </div>
@@ -99,11 +101,7 @@
                                 <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
                             </div>
                         </article>
-                        <article class="legend-card locked"
-                                 data-subject-id="ingrid_segerstedt_wiberg"
-                                 data-name="INGRID SEGERSTEDT-WIBERG"
-                                 data-title="Title &middot; Profession"
-                                 data-intro="A short introduction for today's visitor.">
+                        <article class="legend-card locked" data-subject-id="torgny_segerstedt" data-name="TORGNY SEGERSTEDT" data-title="Title &middot; Profession" data-intro="A short introduction for today's visitor.">
                             <div class="legend-photo">
                                 <div class="legend-photo-placeholder">Awaiting visitor</div>
                             </div>
@@ -113,25 +111,7 @@
                                 <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
                             </div>
                         </article>
-                        <article class="legend-card locked"
-                                 data-subject-id="torgny_segerstedt"
-                                 data-name="TORGNY SEGERSTEDT"
-                                 data-title="Title &middot; Profession"
-                                 data-intro="A short introduction for today's visitor.">
-                            <div class="legend-photo">
-                                <div class="legend-photo-placeholder">Awaiting visitor</div>
-                            </div>
-                            <div class="legend-copy">
-                                <h3 class="legend-name">— — —</h3>
-                                <p class="legend-title">Identity locked</p>
-                                <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
-                            </div>
-                        </article>
-                        <article class="legend-card locked"
-                                 data-subject-id="william_chalmers"
-                                 data-name="WILLIAM CHALMERS"
-                                 data-title="Title &middot; Profession"
-                                 data-intro="A short introduction for today's visitor.">
+                        <article class="legend-card locked" data-subject-id="william_chalmers" data-name="WILLIAM CHALMERS" data-title="Title &middot; Profession" data-intro="A short introduction for today's visitor.">
                             <div class="legend-photo">
                                 <div class="legend-photo-placeholder">Awaiting visitor</div>
                             </div>

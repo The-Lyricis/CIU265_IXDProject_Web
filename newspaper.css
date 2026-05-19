@@ -88,12 +88,17 @@ body {
     text-transform: uppercase;
 }
 
-.header-top span:first-child { text-align: left; }
-.header-top span:last-child { text-align: right; }
+.header-top span:first-child {
+    text-align: left;
+}
+
+.header-top span:last-child {
+    text-align: right;
+}
 
 .newspaper-header h1 {
-    margin: 0;
-    font-family: 'UnifrakturMaguntia', 'Old Standard TT', Georgia, serif;
+    margin: 19px;
+    font-family: 'Alfa Slab One', cursive;
     font-size: clamp(3.2rem, 6.2vw, 6.2rem);
     line-height: 0.86;
     font-weight: 400;
@@ -113,8 +118,13 @@ body {
     text-transform: uppercase;
 }
 
-.header-info span:first-child { text-align: left; }
-.header-info span:last-child { text-align: right; }
+.header-info span:first-child {
+    text-align: left;
+}
+
+.header-info span:last-child {
+    text-align: right;
+}
 
 .frontpage-grid {
     position: relative;
@@ -204,7 +214,6 @@ body {
 /* ==========================================================
    Citizen Lens: top half = BEST NEWS, bottom half = live grid
    ========================================================== */
-
 .lead-story {
     flex: 1;
     min-height: 0;
@@ -341,17 +350,31 @@ body {
 }
 
 @keyframes citizen-flicker {
-    0%, 100% { opacity: 1; }
-    20% { opacity: 0.08; }
-    40% { opacity: 0.85; }
-    60% { opacity: 0.18; }
-    80% { opacity: 0.75; }
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    20% {
+        opacity: 0.08;
+    }
+
+    40% {
+        opacity: 0.85;
+    }
+
+    60% {
+        opacity: 0.18;
+    }
+
+    80% {
+        opacity: 0.75;
+    }
 }
 
 /* ==========================================================
    Everyone Edits / Legends / What's On
    ========================================================== */
-
 .article-list {
     flex: 1;
     min-height: 0;
@@ -478,7 +501,6 @@ body {
 }
 
 /* ----- Locked legend state (default before Unity unlock) ----- */
-
 .legend-card.locked {
     background: rgba(22, 19, 15, 0.04);
     border-color: rgba(22, 19, 15, 0.18);
@@ -497,7 +519,6 @@ body {
 }
 
 /* ----- Unlocked legend state (after Unity submits interview) ----- */
-
 .legend-card.unlocked {
     background: rgba(255, 255, 255, 0.18);
     border-color: var(--rule-color);
@@ -531,27 +552,66 @@ body {
 }
 
 @keyframes legend-card-reveal {
-    0%   { background: rgba(255, 255, 255, 0.55); }
-    100% { background: rgba(255, 255, 255, 0.18); }
+    0% {
+        background: rgba(255, 255, 255, 0.55);
+    }
+
+    100% {
+        background: rgba(255, 255, 255, 0.18);
+    }
 }
 
 @keyframes legend-photo-reveal {
-    0%   { opacity: 0; transform: scale(1.08); filter: grayscale(1) brightness(0.5) contrast(1.4); }
-    100% { opacity: 1; transform: scale(1);    filter: grayscale(0.78) sepia(0.45) contrast(1.18) brightness(0.94); }
+    0% {
+        opacity: 0;
+        transform: scale(1.08);
+        filter: grayscale(1) brightness(0.5) contrast(1.4);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: grayscale(0.78) sepia(0.45) contrast(1.18) brightness(0.94);
+    }
 }
 
 @keyframes legend-text-reveal {
-    0%   { opacity: 0; transform: translateY(3px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+        opacity: 0;
+        transform: translateY(3px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes legend-flicker {
-    0%, 100% { opacity: 1; }
-    15% { opacity: 0.1; }
-    30% { opacity: 0.85; }
-    45% { opacity: 0.2; }
-    60% { opacity: 0.9; }
-    75% { opacity: 0.3; }
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    15% {
+        opacity: 0.1;
+    }
+
+    30% {
+        opacity: 0.85;
+    }
+
+    45% {
+        opacity: 0.2;
+    }
+
+    60% {
+        opacity: 0.9;
+    }
+
+    75% {
+        opacity: 0.3;
+    }
 }
 
 .event-list {
