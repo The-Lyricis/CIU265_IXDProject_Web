@@ -1,9 +1,13 @@
 // Newspaper / Display client.
 //
-// Two independent data channels:
+// Three independent data channels:
 //   1. Citizen Lens photos -> Socket.IO to our own server.js (same origin).
-//   2. Everyone Edits articles -> Supabase Realtime on the `frontpage_articles`
-//      table, populated by the Typewriter project's publisher.
+//   2. Everyone Edits articles -> Supabase Realtime on `frontpage_articles`,
+//      populated by the Typewriter project's publisher.
+//   3. Today's Legendary Visitors -> Supabase Realtime on `interviews`,
+//      populated by the Unity InteractionReporter when a story ends.
+//      The npc_id column matches a `data-subject-id` on a .legend-card and
+//      causes that card to flip from locked -> unlocked.
 //
 // The photo channel maintains a local mirror of the server's photoLibrary
 // (cap 100). Top half = BEST NEWS (the photo with the highest vote count,
@@ -20,6 +24,7 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from './supabase-config.js';
 const bestNewsPhoto = document.getElementById('best-news-photo');
 const photoGrid = document.getElementById('citizen-photo-grid');
 const articleList = document.getElementById('article-list');
+const legendsGrid = document.getElementById('legends-grid');
 const statusEl = document.getElementById('realtime-status');
 const dateEl = document.getElementById('current-date');
 const sessionEl = document.getElementById('session-status');
@@ -37,6 +42,7 @@ const photoLibrary = []; // [{id, dataUrl, votes, createdAt}]
 let flickerTimerId = null;
 
 const articlesById = new Map();
+const unlockedSubjectIds = new Set();
 let currentSessionId = null;
 let supabase = null;
 let isSessionPinned = false;
@@ -358,9 +364,171 @@ function subscribeToArticles() {
         .subscribe();
 }
 
+// ---------- Today's Legendary Visitors: unlock from interviews ----------
+//
+// Each .legend-card carries:
+//   data-subject-id  - must match Unity StorySubject.subjectId (== interviews.npc_id)
+//   data-name        - real name to reveal
+//   data-title       - subtitle (profession / era)
+//   data-intro       - short bio paragraph
+//   data-photo       - portrait image path (optional)
+//
+// On page load we query interviews for the current session and unlock any cards
+// whose npc_id has already been recorded. After that we subscribe to inserts on
+// the interviews table and unlock matching cards live.
+
+function findLegendCard(subjectId) {
+    if (!subjectId || !legendsGrid) return null;
+    // Escape the attribute value defensively in case ids ever contain quotes.
+    const safe = String(subjectId).replace(/["\\]/g, '\\$&');
+    return legendsGrid.querySelector(`.legend-card[data-subject-id="${safe}"]`);
+}
+
+function unlockLegend(subjectId) {
+    if (!subjectId) return;
+    if (unlockedSubjectIds.has(subjectId)) return;
+
+    const card = findLegendCard(subjectId);
+    if (!card) {
+        // No matching card on this page: cache the id anyway so we don't
+        // keep retrying on every realtime echo.
+        unlockedSubjectIds.add(subjectId);
+        console.warn(`[legends] No card found for subject_id="${subjectId}"`);
+        return;
+    }
+
+    unlockedSubjectIds.add(subjectId);
+
+    const name  = card.dataset.name  || '';
+    const title = card.dataset.title || '';
+    const intro = card.dataset.intro || '';
+    const photo = card.dataset.photo || '';
+
+    const nameEl  = card.querySelector('.legend-name');
+    const titleEl = card.querySelector('.legend-title');
+    const introEl = card.querySelector('.legend-intro');
+    const photoEl = card.querySelector('.legend-photo');
+
+    if (nameEl  && name)  nameEl.innerHTML  = name;   // innerHTML so &middot; etc. render
+    if (titleEl && title) titleEl.innerHTML = title;
+    if (introEl && intro) introEl.textContent = intro;
+
+    if (photoEl) {
+        if (photo) {
+            photoEl.innerHTML =
+                `<img src="${escapeHtml(photo)}" alt="${escapeHtml(name)}">`;
+        } else {
+            photoEl.innerHTML =
+                `<div class="legend-photo-placeholder">No portrait on file</div>`;
+        }
+    }
+
+    // Brief flicker so newly unlocked cards visually announce themselves,
+    // then switch the persistent state class.
+    card.classList.add('flickering');
+    setTimeout(() => {
+        card.classList.remove('locked', 'flickering');
+        card.classList.add('unlocked');
+    }, 450);
+}
+
+async function loadUnlockedLegends() {
+    if (!supabase || !currentSessionId) return;
+
+    const { data, error } = await supabase
+        .from('interviews')
+        .select('npc_id')
+        .eq('session_id', currentSessionId);
+
+    if (error) {
+        console.warn('[legends] Could not load existing interviews:', error.message);
+        return;
+    }
+
+    const seen = new Set();
+    (data || []).forEach((row) => {
+        if (row.npc_id && !seen.has(row.npc_id)) {
+            seen.add(row.npc_id);
+            // Skip the announce-flicker for historical rows: reveal immediately.
+            instantUnlock(row.npc_id);
+        }
+    });
+}
+
+function instantUnlock(subjectId) {
+    const card = findLegendCard(subjectId);
+    if (!card || unlockedSubjectIds.has(subjectId)) return;
+    unlockedSubjectIds.add(subjectId);
+
+    const name  = card.dataset.name  || '';
+    const title = card.dataset.title || '';
+    const intro = card.dataset.intro || '';
+    const photo = card.dataset.photo || '';
+
+    const nameEl  = card.querySelector('.legend-name');
+    const titleEl = card.querySelector('.legend-title');
+    const introEl = card.querySelector('.legend-intro');
+    const photoEl = card.querySelector('.legend-photo');
+
+    if (nameEl  && name)  nameEl.innerHTML  = name;
+    if (titleEl && title) titleEl.innerHTML = title;
+    if (introEl && intro) introEl.textContent = intro;
+    if (photoEl) {
+        if (photo) {
+            photoEl.innerHTML =
+                `<img src="${escapeHtml(photo)}" alt="${escapeHtml(name)}">`;
+        } else {
+            photoEl.innerHTML =
+                `<div class="legend-photo-placeholder">No portrait on file</div>`;
+        }
+    }
+    card.classList.remove('locked');
+    card.classList.add('unlocked');
+}
+
+function subscribeToInterviews() {
+    if (!supabase) return;
+
+    const changes = {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'interviews',
+    };
+    if (isSessionPinned && currentSessionId) {
+        changes.filter = `session_id=eq.${currentSessionId}`;
+    }
+
+    supabase
+        .channel(isSessionPinned ? `interviews:${currentSessionId}` : 'interviews:latest')
+        .on('postgres_changes', changes, (payload) => {
+            const row = payload.new;
+            if (!row || !row.npc_id) return;
+
+            // Same session-tracking behaviour as the article feed: if we
+            // aren't pinned, latch on to the session of the first row we see.
+            if (!isSessionPinned && row.session_id !== currentSessionId) {
+                currentSessionId = row.session_id;
+                setSessionStatus();
+            }
+            if (isSessionPinned && row.session_id !== currentSessionId) return;
+
+            unlockLegend(row.npc_id);
+        })
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('[legends] subscribed to interviews realtime');
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                console.warn(`[legends] interviews subscription status: ${status}. ` +
+                    `Make sure Realtime is enabled for the "interviews" table in Supabase.`);
+            }
+        });
+}
+
+// ---------- Supabase init ----------
+
 async function initSupabaseSide() {
     if (!isSupabaseConfigured()) {
-        console.warn('[everyone-edits] supabase-config.js not filled in; article feed disabled.');
+        console.warn('[supabase] supabase-config.js not filled in; supabase channels disabled.');
         renderArticles();
         return;
     }
@@ -369,9 +537,11 @@ async function initSupabaseSide() {
         await loadCurrentSession();
         setSessionStatus();
         await loadExistingArticles();
+        await loadUnlockedLegends();
         subscribeToArticles();
+        subscribeToInterviews();
     } catch (err) {
-        console.error('[everyone-edits]', err);
+        console.error('[supabase]', err);
         renderArticles();
     }
 }

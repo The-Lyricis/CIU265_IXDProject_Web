@@ -349,7 +349,7 @@ body {
 }
 
 /* ==========================================================
-   Everyone Edits / Legends / What's On (unchanged)
+   Everyone Edits / Legends / What's On
    ========================================================== */
 
 .article-list {
@@ -408,6 +408,7 @@ body {
     padding: 7px;
     border: 1px solid rgba(22, 19, 15, 0.34);
     background: rgba(255, 255, 255, 0.13);
+    transition: background-color 0.4s ease, border-color 0.4s ease;
 }
 
 .legend-photo {
@@ -439,6 +440,8 @@ body {
     font-style: italic;
     color: var(--muted-ink);
     background: rgba(22, 19, 15, 0.035);
+    text-align: center;
+    padding: 4px;
 }
 
 .legend-copy {
@@ -472,6 +475,83 @@ body {
     -webkit-box-orient: vertical;
     font-size: clamp(0.58rem, 0.6vw, 0.72rem);
     line-height: 1.32;
+}
+
+/* ----- Locked legend state (default before Unity unlock) ----- */
+
+.legend-card.locked {
+    background: rgba(22, 19, 15, 0.04);
+    border-color: rgba(22, 19, 15, 0.18);
+    border-style: dashed;
+}
+
+.legend-card.locked .legend-name,
+.legend-card.locked .legend-title,
+.legend-card.locked .legend-intro {
+    color: var(--muted-ink);
+    font-style: italic;
+}
+
+.legend-card.locked .legend-name {
+    letter-spacing: 0.18em;
+}
+
+/* ----- Unlocked legend state (after Unity submits interview) ----- */
+
+.legend-card.unlocked {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: var(--rule-color);
+    animation: legend-card-reveal 0.9s ease-out;
+}
+
+.legend-card.unlocked .legend-name {
+    color: var(--ink-color);
+    font-style: normal;
+    letter-spacing: 0;
+    animation: legend-text-reveal 0.6s ease-out 0.2s both;
+}
+
+.legend-card.unlocked .legend-title {
+    color: var(--muted-ink);
+    animation: legend-text-reveal 0.6s ease-out 0.35s both;
+}
+
+.legend-card.unlocked .legend-intro {
+    color: var(--ink-color);
+    font-style: normal;
+    animation: legend-text-reveal 0.6s ease-out 0.5s both;
+}
+
+.legend-card.unlocked .legend-photo img {
+    animation: legend-photo-reveal 0.8s ease-out;
+}
+
+.legend-card.flickering {
+    animation: legend-flicker 0.6s ease-in-out;
+}
+
+@keyframes legend-card-reveal {
+    0%   { background: rgba(255, 255, 255, 0.55); }
+    100% { background: rgba(255, 255, 255, 0.18); }
+}
+
+@keyframes legend-photo-reveal {
+    0%   { opacity: 0; transform: scale(1.08); filter: grayscale(1) brightness(0.5) contrast(1.4); }
+    100% { opacity: 1; transform: scale(1);    filter: grayscale(0.78) sepia(0.45) contrast(1.18) brightness(0.94); }
+}
+
+@keyframes legend-text-reveal {
+    0%   { opacity: 0; transform: translateY(3px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes legend-flicker {
+    0%, 100% { opacity: 1; }
+    15% { opacity: 0.1; }
+    30% { opacity: 0.85; }
+    45% { opacity: 0.2; }
+    60% { opacity: 0.9; }
+    75% { opacity: 0.3; }
 }
 
 .event-list {
