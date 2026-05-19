@@ -1,55 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gothenburg Posten</title>
-    <link rel="stylesheet" href="newspaper.css">
-</head>
-<body>
-    <div class="newspaper-container">
-        <header class="newspaper-header">
-            <div class="header-top">
-                <span>Founded 1884</span>
-                <h1>Gothenburg Posten</h1>
-                <span>25 SEK</span>
-            </div>
-            <div class="header-info">
-                <span id="current-date">Monday 27 April 2026</span>
-                <span id="realtime-status">CONNECTING TO NEWSROOM</span>
-                <span id="session-status">SESSION: --</span>
-            </div>
-        </header>
-
-        <main class="main-content">
-            <section class="photo-section">
-                <h2 class="section-title">TODAY'S FRONT PAGE</h2>
-                <div class="lead-story" id="lead-story">
-                    <div class="empty-slot">Waiting for the first VR interview</div>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Gothenburg Posten</title>
+        <link rel="stylesheet" href="newspaper.css">
+    </head>
+    <body>
+        <div class="newspaper-container">
+            <header class="newspaper-header">
+                <div class="header-top">
+                    <span>Founded 1884</span>
+                    <h1>Gothenburg Posten</h1>
+                    <span>25 SEK</span>
                 </div>
-            </section>
-
-            <section class="news-section">
-                <div id="article-list" class="article-list"></div>
-            </section>
-        </main>
-
-        <footer class="poetry-section">
-            <div class="poetry-box">
-                <h2>POETRY CORNER</h2>
-                <div class="poetry-content">
-                    <blockquote>
-                        "Every city keeps a second edition.<br>
-                        It waits in memory, in rumor, in light.<br>
-                        Today the streets speak again,<br>
-                        and the page learns how to listen."
-                    </blockquote>
-                    <cite>The Public Editor, 2026</cite>
+                <div class="header-info pinegrow-ui-helper-relative">
+                    <span id="current-date">Monday 27 April 2026</span>
+                    <span id="realtime-status">CONNECTING TO NEWSROOM</span>
+                    <span id="session-status"></span>
                 </div>
-            </div>
-        </footer>
-    </div>
-
-    <script type="module" src="newspaper.js"></script>
-</body>
+            </header>
+            <main class="frontpage-grid">
+                <section class="newspaper-panel citizen-lens-panel">
+                    <h2 class="section-title">CITIZEN LENS</h2>
+                    <p class="section-intro">The day's headlines, framed by the people who live them.</p>
+                    <div class="lead-story" id="lead-story">
+                        <div class="empty-slot">Waiting for the first interview</div>
+                    </div>
+                </section>
+                <section class="newspaper-panel everyone-edits-panel">
+                    <h2 class="section-title">EVERYONE EDITS</h2>
+                    <p class="section-intro">Readers take the editor's chair and write the news themselves.</p>
+                    <div id="article-list" class="article-list"></div>
+                </section>
+                <section class="newspaper-panel legends-section">
+                    <h2 class="section-title">TODAY'S LEGENDARY VISITORS</h2>
+                    <p class="section-intro">Step into a conversation with the figures shaping our time.</p>
+                    <div class="legends-grid">
+                        <article class="legend-card">
+                            <div class="legend-photo">
+                                <div class="legend-photo-placeholder">Portrait</div>
+                            </div>
+                            <div class="legend-copy">
+                                <h3 class="legend-name">Legend Name One</h3>
+                                <p class="legend-title">Title &middot; Profession</p>
+                                <p class="legend-intro">A short introduction for today's visitor.</p>
+                            </div>
+                        </article>
+                        <article class="legend-card">
+                            <div class="legend-photo">
+                                <div class="legend-photo-placeholder">Portrait</div>
+                            </div>
+                            <div class="legend-copy">
+                                <h3 class="legend-name">Legend Name Two</h3>
+                                <p class="legend-title">Title &middot; Profession</p>
+                                <p class="legend-intro">A short introduction for today's visitor.</p>
+                            </div>
+                        </article>
+                        <article class="legend-card">
+                            <div class="legend-photo">
+                                <div class="legend-photo-placeholder">Portrait</div>
+                            </div>
+                            <div class="legend-copy">
+                                <h3 class="legend-name">Legend Name Three</h3>
+                                <p class="legend-title">Title &middot; Profession</p>
+                                <p class="legend-intro">A short introduction for today's visitor.</p>
+                            </div>
+                        </article>
+                        <article class="legend-card">
+                            <div class="legend-photo">
+                                <div class="legend-photo-placeholder">Portrait</div>
+                            </div>
+                            <div class="legend-copy">
+                                <h3 class="legend-name">Legend Name Four</h3>
+                                <p class="legend-title">Title &middot; Profession</p>
+                                <p class="legend-intro">A short introduction for today's visitor.</p>
+                            </div>
+                        </article>
+                        <article class="legend-card">
+                            <div class="legend-photo">
+                                <div class="legend-photo-placeholder">Portrait</div>
+                            </div>
+                            <div class="legend-copy">
+                                <h3 class="legend-name">Legend Name Five</h3>
+                                <p class="legend-title">Title &middot; Profession</p>
+                                <p class="legend-intro">A short introduction for today's visitor.</p>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+                <aside class="newspaper-panel whats-on-panel">
+                    <h2 class="section-title">WHAT&apos;S ON</h2>
+                    <p class="section-intro">This week in Gothenburg. A column of events with times. Listings break up prose nicely.</p>
+                    <div class="event-list">
+                        <article class="event-item">
+                            <time>MON 10:00</time>
+                            <p>Morning market at Kungstorget</p>
+                        </article>
+                        <article class="event-item">
+                            <time>WED 18:30</time>
+                            <p>Harbour walk and public talk</p>
+                        </article>
+                        <article class="event-item">
+                            <time>FRI 20:00</time>
+                            <p>Open air music near the river</p>
+                        </article>
+                        <article class="event-item">
+                            <time>SUN 14:00</time>
+                            <p>Family history tour in the city centre</p>
+                        </article>
+                    </div>
+                </aside>
+            </main>
+        </div>
+        <script type="module" src="newspaper.js"></script>
+    </body>
 </html>
