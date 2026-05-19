@@ -43,9 +43,15 @@ let flickerTimerId = null;
 
 const articlesById = new Map();
 const unlockedSubjectIds = new Set();
+const highlightArticleIds = new Set();
 let currentSessionId = null;
 let supabase = null;
 let isSessionPinned = false;
+
+let newsScrollResizeObserver = null;
+let newsScrollResizeTimer = null;
+/** Pixels per second — drives CSS loop duration (segmentHeight / speed) */
+const NEWS_SCROLL_PX_PER_SEC = 10;
 
 // ---------- Small helpers ----------
 
@@ -92,6 +98,196 @@ function escapeHtml(value) {
 function formatTime(value) {
     if (!value) return 'Filed moments ago';
     return `Filed ${new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+function isMetadataSubtitle(text) {
+    if (!text) return false;
+    const t = String(text);
+    return /Subject:\s*/i.test(t) && /(Story:|Where:|Time:|Tone:)/i.test(t);
+}
+
+function stripArchiveFooter(text) {
+    if (!text) return '';
+    let body = String(text).trim();
+    body = body.replace(/\n\n—\s+[^\n]+$/s, '').trim();
+    body = body.replace(/\n—\s+Archive-inspired[\s\S]*$/i, '').trim();
+    return body;
+}
+
+function getGeneratedDraft(item) {
+    return item?.generatedDraft || item?.generated_draft || item?.article?.generatedDraft || null;
+}
+
+function getArticleContent(item) {
+    const generated = getGeneratedDraft(item);
+    const nested = item?.article || {};
+
+    const headline =
+        generated?.headline ||
+        nested.headline ||
+        item.headline ||
+        item.title ||
+        '';
+
+    let body =
+        generated?.body ||
+        nested.body ||
+        item.body ||
+        '';
+
+    body = stripArchiveFooter(body);
+
+    if (!body && item.subtitle && !isMetadataSubtitle(item.subtitle)) {
+        body = String(item.subtitle).trim();
+    }
+
+    return {
+        headline: String(headline || '').trim(),
+        body: String(body || '').trim(),
+    };
+}
+
+function getDispatchMetaLine(item) {
+    const timePart = formatTime(item.created_at);
+    const generated = getGeneratedDraft(item);
+    const label = generated?.label || item.tag;
+    if (label && /archive-inspired/i.test(label)) {
+        return `${timePart} · Archive-inspired dispatch`;
+    }
+    if (item.subtitle && !isMetadataSubtitle(item.subtitle)) {
+        return `${timePart} · ${String(item.subtitle).trim()}`;
+    }
+    return `${timePart} · Public dispatch`;
+}
+
+function getNewsLoopTrack() {
+    return articleList?.querySelector('.visitor-news-track') || null;
+}
+
+function getNewsLoopSegmentHeight() {
+    const set = articleList?.querySelector('.visitor-news-set');
+    return set ? set.offsetHeight : 0;
+}
+
+function shouldNewsAutoScroll() {
+    if (!articleList) return false;
+    const segment = getNewsLoopSegmentHeight();
+    return segment > articleList.clientHeight + 1;
+}
+
+function syncNewsAutoScroll() {
+    const list = articleList;
+    const track = getNewsLoopTrack();
+    if (!list || !track) return;
+
+    track.classList.remove('visitor-news-track--animate');
+    track.style.removeProperty('--loop-duration');
+
+    const apply = () => {
+        if (!articleList) return;
+        const currentTrack = getNewsLoopTrack();
+        if (!currentTrack) return;
+
+        const segment = getNewsLoopSegmentHeight();
+        if (segment > articleList.clientHeight + 1) {
+            const durationSec = Math.max(segment / NEWS_SCROLL_PX_PER_SEC, 20);
+            currentTrack.style.setProperty('--loop-duration', `${durationSec}s`);
+            currentTrack.classList.add('visitor-news-track--animate');
+        }
+    };
+
+    requestAnimationFrame(() => requestAnimationFrame(apply));
+}
+
+function bindNewsListScrollControls() {
+    if (!articleList || articleList.dataset.scrollBound) return;
+    articleList.dataset.scrollBound = '1';
+
+    if (typeof ResizeObserver !== 'undefined') {
+        newsScrollResizeObserver = new ResizeObserver(() => {
+            clearTimeout(newsScrollResizeTimer);
+            newsScrollResizeTimer = setTimeout(syncNewsAutoScroll, 100);
+        });
+        newsScrollResizeObserver.observe(articleList);
+    }
+
+    window.addEventListener('resize', () => {
+        clearTimeout(newsScrollResizeTimer);
+        newsScrollResizeTimer = setTimeout(syncNewsAutoScroll, 150);
+    });
+}
+
+function shouldUseCitizenLensSocket() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('socket') === '1') return true;
+    if (params.get('socket') === '0') return false;
+    const port = window.location.port;
+    if (port === '3000' || port === '5173') return true;
+    return false;
+}
+
+function initCitizenLensSocket() {
+    if (!shouldUseCitizenLensSocket()) {
+        console.info(
+            '[citizen-lens] Socket.IO skipped on this host (static preview). ' +
+                'Add ?socket=1 when a Socket.IO server is running, e.g. on port 3000.'
+        );
+        return;
+    }
+
+    const socket = io();
+
+    socket.on('connect', () => {
+        console.log('[citizen-lens] socket connected:', socket.id);
+        setStatus('CITIZEN LENS LIVE');
+    });
+
+    socket.on('disconnect', (reason) => {
+        console.log('[citizen-lens] socket disconnected:', reason);
+        setStatus('CITIZEN LENS OFFLINE');
+    });
+
+    socket.on('connect_error', (err) => {
+        console.warn('[citizen-lens] socket connect_error:', err.message);
+        setStatus('CITIZEN LENS OFFLINE');
+    });
+
+    socket.on('photo:state', ({ library }) => {
+        photoLibrary.length = 0;
+        if (Array.isArray(library)) library.forEach(addPhotoToLibrary);
+
+        renderBest();
+        renderInitialGrid();
+        if (photoLibrary.length >= VISIBLE_SLOTS) {
+            ensureFlickerRunning();
+        } else {
+            stopFlicker();
+        }
+    });
+
+    socket.on('photo:added', (photo) => {
+        if (!photo || !photo.id) return;
+        if (photoLibrary.some((p) => p.id === photo.id)) return;
+
+        addPhotoToLibrary(photo);
+        renderBest();
+
+        if (photoLibrary.length < VISIBLE_SLOTS) {
+            renderInitialGrid();
+        } else if (photoLibrary.length === VISIBLE_SLOTS) {
+            renderInitialGrid();
+            ensureFlickerRunning();
+        } else {
+            const slots = getSlotEls();
+            const slot = slots[Math.floor(Math.random() * slots.length)];
+            flickerInto(slot, photoLibrary[photoLibrary.length - 1]);
+        }
+    });
+
+    socket.on('photo:voted', ({ id, votes }) => {
+        applyVote(id, votes);
+        renderBest();
+    });
 }
 
 // ---------- Citizen Lens: library + BEST ----------
@@ -206,97 +402,64 @@ function stopFlicker() {
     }
 }
 
-// ---------- Citizen Lens: Socket.IO events ----------
-
-const socket = io();
-
-socket.on('connect', () => {
-    console.log('[citizen-lens] socket connected:', socket.id);
-    setStatus('CITIZEN LENS LIVE');
-});
-
-socket.on('disconnect', (reason) => {
-    console.log('[citizen-lens] socket disconnected:', reason);
-    setStatus('CITIZEN LENS OFFLINE');
-});
-
-socket.on('connect_error', (err) => {
-    console.error('[citizen-lens] socket connect_error:', err.message);
-    setStatus('CITIZEN LENS OFFLINE');
-});
-
-// Full snapshot (on connect and after server-side resets).
-socket.on('photo:state', ({ library }) => {
-    photoLibrary.length = 0;
-    if (Array.isArray(library)) library.forEach(addPhotoToLibrary);
-
-    renderBest();
-    renderInitialGrid();
-    if (photoLibrary.length >= VISIBLE_SLOTS) {
-        ensureFlickerRunning();
-    } else {
-        stopFlicker();
-    }
-});
-
-// One new photo from a capture client.
-socket.on('photo:added', (photo) => {
-    if (!photo || !photo.id) return;
-    if (photoLibrary.some((p) => p.id === photo.id)) return;
-
-    addPhotoToLibrary(photo);
-    renderBest();
-
-    if (photoLibrary.length < VISIBLE_SLOTS) {
-        renderInitialGrid();
-    } else if (photoLibrary.length === VISIBLE_SLOTS) {
-        renderInitialGrid();
-        ensureFlickerRunning();
-    } else {
-        // Already in flicker mode: surface the new photo immediately by
-        // flickering it into a random slot.
-        const slots = getSlotEls();
-        const slot = slots[Math.floor(Math.random() * slots.length)];
-        flickerInto(slot, photoLibrary[photoLibrary.length - 1]);
-    }
-});
-
-// Vote count update from a capture client.
-socket.on('photo:voted', ({ id, votes }) => {
-    applyVote(id, votes);
-    renderBest();
-});
-
 // ---------- Everyone Edits side list (Supabase) ----------
+
+function buildVisitorNewsItemHtml(article) {
+    const { headline, body } = getArticleContent(article);
+    const displayHeadline = headline || 'Untitled dispatch';
+    const displayBody = body || '';
+    const highlightClass = highlightArticleIds.has(article.id) ? ' is-new' : '';
+    const safeId = escapeHtml(article.id);
+
+    return `
+        <article class="visitor-news-item${highlightClass}" data-article-id="${safeId}">
+            <div class="news-meta">${escapeHtml(getDispatchMetaLine(article))}</div>
+            <h3 class="news-headline">${escapeHtml(displayHeadline)}</h3>
+            <p class="news-body">${escapeHtml(displayBody)}</p>
+        </article>
+    `;
+}
 
 function renderArticles() {
     const articles = Array.from(articlesById.values())
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-    const sideArticles = articles.slice(0, 5);
-    if (sideArticles.length === 0) {
+    if (articles.length === 0) {
         articleList.innerHTML = `
-            <article class="sub-article">
-                <h4>Newsroom awaiting interviews</h4>
-                <p>Completed interviews will appear here as soon as they are filed.</p>
+            <article class="visitor-news-item visitor-news-item--empty">
+                <h3 class="news-headline">Newsroom awaiting dispatches</h3>
+                <p class="news-body">Published typewriter stories will appear here as they are filed to the public feed.</p>
             </article>
         `;
+        syncNewsAutoScroll();
         return;
     }
 
-    articleList.innerHTML = sideArticles.map((article) => `
-        <article class="sub-article">
-            <h4>${escapeHtml(article.title)}</h4>
-            <p class="author">${formatTime(article.created_at)}</p>
-            <p>${escapeHtml(article.subtitle || article.body || '')}</p>
-        </article>
-    `).join('');
+    const itemsHtml = articles.map(buildVisitorNewsItemHtml).join('');
+    articleList.innerHTML = `
+        <div class="visitor-news-track">
+            <div class="visitor-news-set">${itemsHtml}</div>
+            <div class="visitor-news-set visitor-news-set--loop" aria-hidden="true">${itemsHtml}</div>
+        </div>
+    `;
+
+    syncNewsAutoScroll();
+    setTimeout(syncNewsAutoScroll, 400);
 }
 
 function addArticle(article) {
     if (!article || !article.id) return;
+    const isNew = !articlesById.has(article.id);
     articlesById.set(article.id, article);
+    if (isNew) highlightArticleIds.add(article.id);
     renderArticles();
+    if (isNew) {
+        setTimeout(() => {
+            highlightArticleIds.delete(article.id);
+            const el = articleList?.querySelector(`[data-article-id="${CSS.escape(article.id)}"]`);
+            el?.classList.remove('is-new');
+        }, 2600);
+    }
 }
 
 async function loadCurrentSession() {
@@ -540,9 +703,11 @@ async function initSupabaseSide() {
         await loadUnlockedLegends();
         subscribeToArticles();
         subscribeToInterviews();
+        setStatus('NEWSROOM LIVE');
     } catch (err) {
         console.error('[supabase]', err);
         renderArticles();
+        setStatus('NEWSROOM OFFLINE');
     }
 }
 
@@ -552,7 +717,9 @@ function init() {
     formatDate();
     renderBest();
     renderInitialGrid();
-    initSupabaseSide(); // citizen-lens side bootstraps itself via socket.io events
+    bindNewsListScrollControls();
+    initCitizenLensSocket();
+    initSupabaseSide();
 }
 
 init();

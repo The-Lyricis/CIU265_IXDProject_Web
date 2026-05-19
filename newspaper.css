@@ -163,6 +163,8 @@ body {
     grid-row: 1 / 3;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .legends-section {
@@ -375,41 +377,100 @@ body {
 /* ==========================================================
    Everyone Edits / Legends / What's On
    ========================================================== */
-.article-list {
-    flex: 1;
+.visitor-news-list {
+    flex: 1 1 0;
     min-height: 0;
-    display: grid;
-    align-content: start;
-    gap: 10px;
+    height: 0;
     overflow: hidden;
 }
 
-.sub-article {
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--hairline);
+.visitor-news-track {
+    display: block;
+    will-change: transform;
 }
 
-.sub-article h4 {
-    margin: 0 0 5px;
-    font-family: 'Old Standard TT', Georgia, serif;
-    font-size: clamp(0.98rem, 1vw, 1.28rem);
-    line-height: 1.02;
-    font-weight: 700;
-    text-transform: uppercase;
+.visitor-news-track--animate {
+    animation: visitor-news-loop var(--loop-duration, 90s) linear infinite;
 }
 
-.author {
-    margin: 0 0 5px;
-    font-size: 0.7rem;
-    font-style: italic;
-    color: var(--muted-ink);
+.visitor-news-list:hover .visitor-news-track--animate {
+    animation-play-state: paused;
 }
 
-.sub-article p {
+@keyframes visitor-news-loop {
+    from {
+        transform: translate3d(0, 0, 0);
+    }
+
+    to {
+        transform: translate3d(0, -50%, 0);
+    }
+}
+
+.visitor-news-set--loop {
+    pointer-events: none;
+}
+
+.visitor-news-item {
+    padding: 6px 0 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.visitor-news-item:last-child {
+    border-bottom: none;
+}
+
+.visitor-news-item--empty .news-headline {
+    font-size: 0.9rem;
+    text-transform: none;
+}
+
+.visitor-news-item .news-meta {
     margin: 0;
-    font-size: clamp(0.7rem, 0.72vw, 0.86rem);
-    line-height: 1.38;
+    font-family: 'PT Serif', Georgia, serif;
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    line-height: 1.2;
+}
+
+.visitor-news-item .news-headline {
+    margin: 2px 0 3px;
+    font-family: 'Old Standard TT', Georgia, serif;
+    font-size: 14px;
+    line-height: 1.1;
+    font-weight: 700;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.visitor-news-item .news-body {
+    margin: 0;
+    font-family: 'PT Serif', Georgia, serif;
+    font-size: 10px;
+    line-height: 1.3;
     text-align: justify;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.visitor-news-item.is-new {
+    animation: visitor-news-highlight 2.4s ease-out;
+}
+
+@keyframes visitor-news-highlight {
+    0% {
+        background: rgba(22, 19, 15, 0.12);
+    }
+
+    100% {
+        background: transparent;
+    }
 }
 
 .legends-grid {
