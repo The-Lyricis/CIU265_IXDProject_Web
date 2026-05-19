@@ -2,6 +2,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './supabase-config.js';
 
 const leadStory = document.getElementById('lead-story');
+const leadEmpty = document.getElementById('lead-empty');
+const photoGrid = document.getElementById('citizen-photo-grid');
 const articleList = document.getElementById('article-list');
 const statusEl = document.getElementById('realtime-status');
 const dateEl = document.getElementById('current-date');
@@ -11,6 +13,14 @@ const articlesById = new Map();
 let currentSessionId = null;
 let supabase = null;
 let isSessionPinned = false;
+
+// ---------- Citizen Lens live photos (broadcast from capture.html) ----------
+
+const CITIZEN_CHANNEL = 'citizen-lens-photos';
+const CITIZEN_EVENT_NEW = 'new-photo';
+const CITIZEN_EVENT_RESET = 'reset-photos';
+const MAX_PHOTOS = 8;
+const photoQueue = []; // FIFO of {id, dataUrl, createdAt}
 
 function setStatus(text) {
     statusEl.textContent = text;
@@ -46,43 +56,101 @@ function getSessionIdFromUrl() {
     return params.get('session_id');
 }
 
+// ---------- Citizen Lens grid rendering ----------
+
+function renderPhotoGrid() {
+    if (!photoGrid || !leadStory) return;
+
+    const slotEls = photoGrid.querySelectorAll('.citizen-slot');
+    slotEls.forEach((slotEl, i) => {
+        const photo = photoQueue[i];
+        if (photo) {
+            const existing = slotEl.querySelector('img');
+            if (!existing || existing.dataset.photoId !== photo.id) {
+                slotEl.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = photo.dataUrl;
+                img.alt = 'Citizen Lens capture';
+                img.dataset.photoId = photo.id;
+                slotEl.appendChild(img);
+            }
+            slotEl.classList.add('filled');
+        } else {
+            slotEl.classList.remove('filled');
+            slotEl.innerHTML = '';
+        }
+    });
+
+    if (photoQueue.length > 0) {
+        leadStory.classList.add('has-photos');
+    } else {
+        leadStory.classList.remove('has-photos');
+    }
+}
+
+function addPhoto(photo) {
+    if (!photo || !photo.dataUrl) return;
+    if (photo.id && photoQueue.some((p) => p.id === photo.id)) return; // dedup
+
+    photoQueue.push({
+        id: photo.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        dataUrl: photo.dataUrl,
+        createdAt: photo.createdAt || new Date().toISOString(),
+    });
+
+    // FIFO: keep only the latest MAX_PHOTOS
+    while (photoQueue.length > MAX_PHOTOS) {
+        photoQueue.shift();
+    }
+
+    renderPhotoGrid();
+}
+
+function clearPhotos() {
+    photoQueue.length = 0;
+    renderPhotoGrid();
+}
+
+function subscribeToCitizenLens() {
+    if (!supabase) return;
+    supabase
+        .channel(CITIZEN_CHANNEL, { config: { broadcast: { self: false } } })
+        .on('broadcast', { event: CITIZEN_EVENT_NEW }, (msg) => {
+            addPhoto(msg.payload);
+            setStatus('CITIZEN LENS LIVE');
+        })
+        .on('broadcast', { event: CITIZEN_EVENT_RESET }, () => {
+            clearPhotos();
+            setStatus('CITIZEN LENS CLEARED');
+        })
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('[citizen-lens] subscribed.');
+            }
+        });
+}
+
+// ---------- Article list (Everyone Edits) ----------
+// Lead area is now reserved for live Citizen Lens photos, so all incoming
+// articles populate the Everyone Edits side list rather than the lead story.
+
 function renderImage(article) {
     if (!article.image_url) {
         return '<div class="image-placeholder">No interview image yet</div>';
     }
-
     return `<img src="${article.image_url}" alt="${escapeHtml(article.title)}">`;
-}
-
-function renderLead(article) {
-    if (!article) {
-        leadStory.innerHTML = '<div class="empty-slot">Waiting for the first VR interview</div>';
-        return;
-    }
-
-    leadStory.innerHTML = `
-        <figure class="lead-figure">
-            ${renderImage(article)}
-            <figcaption>${formatTime(article.created_at)}</figcaption>
-        </figure>
-        <h3>${escapeHtml(article.title)}</h3>
-        <p class="lead-subtitle">${escapeHtml(article.subtitle || '')}</p>
-        <p>${escapeHtml(article.body || '')}</p>
-    `;
 }
 
 function renderArticles() {
     const articles = Array.from(articlesById.values())
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-    renderLead(articles[0]);
-
-    const sideArticles = articles.slice(1, 5);
+    const sideArticles = articles.slice(0, 5);
     if (sideArticles.length === 0) {
         articleList.innerHTML = `
             <article class="sub-article">
                 <h4>Newsroom awaiting interviews</h4>
-                <p>Completed VR interviews will appear here as soon as they are filed.</p>
+                <p>Completed interviews will appear here as soon as they are filed.</p>
             </article>
         `;
         return;
@@ -206,7 +274,9 @@ async function init() {
 
     if (!isConfigured()) {
         setStatus('SUPABASE CONFIG NEEDED');
-        leadStory.innerHTML = '<div class="empty-slot">Fill frontend/supabase-config.js to connect the live newsroom</div>';
+        if (leadEmpty) {
+            leadEmpty.textContent = 'Fill supabase-config.js to connect the live newsroom';
+        }
         renderArticles();
         return;
     }
@@ -217,12 +287,17 @@ async function init() {
         setSessionStatus();
         await loadExistingArticles();
         subscribeToArticles();
+        subscribeToCitizenLens();
     } catch (error) {
         console.error(error);
         setStatus('NEWSROOM CONNECTION ERROR');
-        leadStory.innerHTML = `<div class="empty-slot">${escapeHtml(error.message)}</div>`;
+        if (leadEmpty) {
+            leadEmpty.textContent = error.message;
+        }
+        // Still subscribe to Citizen Lens broadcasts even if article loading
+        // failed - the photo wall doesn't depend on sessions/articles.
+        if (supabase) subscribeToCitizenLens();
     }
 }
 
 init();
-
