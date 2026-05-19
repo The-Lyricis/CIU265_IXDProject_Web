@@ -1,4 +1,18 @@
+// Newspaper / Display client.
+//
+// Two independent data channels:
+//   1. Citizen Lens photos -> Socket.IO to our own server.js (same origin).
+//   2. Everyone Edits articles -> Supabase Realtime on the `frontpage_articles`
+//      table, populated by the Typewriter project's publisher.
+//
+// The photo channel maintains a local mirror of the server's photoLibrary
+// (cap 100). Top half = BEST NEWS (the photo with the highest vote count,
+// >= 1 vote). Bottom half = 4x2 grid that fills sequentially until 8 photos
+// have arrived, then switches to a flicker loop that randomly reshuffles
+// visible photos from the library every 2.5s.
+
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { io } from 'https://cdn.socket.io/4.7.5/socket.io.esm.min.js';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './supabase-config.js';
 
 // ---------- DOM ----------
@@ -12,11 +26,6 @@ const sessionEl = document.getElementById('session-status');
 
 // ---------- Config ----------
 
-const CITIZEN_CHANNEL = 'citizen-lens-photos';
-const EVENT_NEW = 'new-photo';
-const EVENT_VOTE = 'vote';
-const EVENT_RESET = 'reset-photos';
-
 const MAX_LIBRARY = 100;
 const VISIBLE_SLOTS = 8;
 const FLICKER_INTERVAL_MS = 2500;
@@ -24,7 +33,7 @@ const FLICKER_FADE_MS = 200;
 
 // ---------- State ----------
 
-const photoLibrary = [];      // [{id, dataUrl, votes, createdAt}]
+const photoLibrary = []; // [{id, dataUrl, votes, createdAt}]
 let flickerTimerId = null;
 
 const articlesById = new Map();
@@ -51,7 +60,7 @@ function formatDate() {
     dateEl.textContent = formatter.format(new Date());
 }
 
-function isConfigured() {
+function isSupabaseConfigured() {
     return (
         SUPABASE_URL &&
         SUPABASE_ANON_KEY &&
@@ -92,9 +101,10 @@ function addPhotoToLibrary(photo) {
     while (photoLibrary.length > MAX_LIBRARY) photoLibrary.shift();
 }
 
-function applyVote(photoId) {
+function applyVote(photoId, votes) {
     const photo = photoLibrary.find((p) => p.id === photoId);
-    if (photo) photo.votes += 1;
+    if (!photo) return;
+    photo.votes = typeof votes === 'number' ? votes : photo.votes + 1;
 }
 
 function getBestPhoto() {
@@ -103,7 +113,6 @@ function getBestPhoto() {
         if (b.votes !== a.votes) return b.votes - a.votes;
         return new Date(b.createdAt) - new Date(a.createdAt);
     });
-    // Only treat a photo as BEST once it has at least one vote.
     if (sorted[0].votes === 0) return null;
     return sorted[0];
 }
@@ -131,7 +140,8 @@ function getSlotEls() {
 
 function fillSlot(slot, photo) {
     slot.dataset.photoId = photo.id;
-    slot.innerHTML = `<img src="${photo.dataUrl}" alt="Citizen Lens capture" data-photo-id="${photo.id}">`;
+    slot.innerHTML =
+        `<img src="${photo.dataUrl}" alt="Citizen Lens capture" data-photo-id="${photo.id}">`;
     slot.classList.add('filled');
 }
 
@@ -141,8 +151,6 @@ function emptySlot(slot) {
     slot.classList.remove('filled');
 }
 
-// Phase 1: library has < VISIBLE_SLOTS photos. Fill slots sequentially with
-// the most recent photos.
 function renderInitialGrid() {
     const slots = getSlotEls();
     const recent = [...photoLibrary]
@@ -160,8 +168,6 @@ function renderInitialGrid() {
     });
 }
 
-// Phase 2: library is full enough for shuffling. Pick a random slot and
-// swap its photo with a random library photo not currently visible.
 function flickerTick() {
     if (photoLibrary.length < VISIBLE_SLOTS) return;
     const slots = getSlotEls();
@@ -171,7 +177,6 @@ function flickerTick() {
     const candidates = photoLibrary.filter((p) => !visibleIds.has(p.id));
     if (candidates.length === 0) return;
     const newPhoto = candidates[Math.floor(Math.random() * candidates.length)];
-
     flickerInto(slot, newPhoto);
 }
 
@@ -179,7 +184,6 @@ function flickerInto(slot, photo) {
     slot.classList.add('flickering');
     setTimeout(() => {
         fillSlot(slot, photo);
-        // remove flicker class after animation duration
         setTimeout(() => slot.classList.remove('flickering'), 250);
     }, FLICKER_FADE_MS);
 }
@@ -196,64 +200,68 @@ function stopFlicker() {
     }
 }
 
-// ---------- Citizen Lens: event handlers ----------
+// ---------- Citizen Lens: Socket.IO events ----------
 
-function handleNewPhoto(payload) {
-    addPhotoToLibrary(payload);
+const socket = io();
+
+socket.on('connect', () => {
+    console.log('[citizen-lens] socket connected:', socket.id);
+    setStatus('CITIZEN LENS LIVE');
+});
+
+socket.on('disconnect', (reason) => {
+    console.log('[citizen-lens] socket disconnected:', reason);
+    setStatus('CITIZEN LENS OFFLINE');
+});
+
+socket.on('connect_error', (err) => {
+    console.error('[citizen-lens] socket connect_error:', err.message);
+    setStatus('CITIZEN LENS OFFLINE');
+});
+
+// Full snapshot (on connect and after server-side resets).
+socket.on('photo:state', ({ library }) => {
+    photoLibrary.length = 0;
+    if (Array.isArray(library)) library.forEach(addPhotoToLibrary);
+
+    renderBest();
+    renderInitialGrid();
+    if (photoLibrary.length >= VISIBLE_SLOTS) {
+        ensureFlickerRunning();
+    } else {
+        stopFlicker();
+    }
+});
+
+// One new photo from a capture client.
+socket.on('photo:added', (photo) => {
+    if (!photo || !photo.id) return;
+    if (photoLibrary.some((p) => p.id === photo.id)) return;
+
+    addPhotoToLibrary(photo);
     renderBest();
 
     if (photoLibrary.length < VISIBLE_SLOTS) {
-        // Phase 1: still seating photos in order.
         renderInitialGrid();
     } else if (photoLibrary.length === VISIBLE_SLOTS) {
-        // We just crossed the threshold; place the 8th photo, then
-        // start the flicker shuffler.
         renderInitialGrid();
         ensureFlickerRunning();
     } else {
-        // Phase 2: flicker the new photo into a random visible slot so
-        // users get immediate feedback that a fresh capture arrived.
+        // Already in flicker mode: surface the new photo immediately by
+        // flickering it into a random slot.
         const slots = getSlotEls();
         const slot = slots[Math.floor(Math.random() * slots.length)];
         flickerInto(slot, photoLibrary[photoLibrary.length - 1]);
     }
-}
+});
 
-function handleVote(photoId) {
-    applyVote(photoId);
+// Vote count update from a capture client.
+socket.on('photo:voted', ({ id, votes }) => {
+    applyVote(id, votes);
     renderBest();
-}
+});
 
-function handleReset() {
-    photoLibrary.length = 0;
-    stopFlicker();
-    renderBest();
-    getSlotEls().forEach(emptySlot);
-}
-
-function subscribeToCitizenLens() {
-    if (!supabase) return;
-    supabase
-        .channel(CITIZEN_CHANNEL, { config: { broadcast: { self: false } } })
-        .on('broadcast', { event: EVENT_NEW }, (msg) => {
-            handleNewPhoto(msg.payload);
-            setStatus('CITIZEN LENS LIVE');
-        })
-        .on('broadcast', { event: EVENT_VOTE }, (msg) => {
-            handleVote(msg.payload?.id);
-        })
-        .on('broadcast', { event: EVENT_RESET }, () => {
-            handleReset();
-            setStatus('CITIZEN LENS CLEARED');
-        })
-        .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                console.log('[citizen-lens] subscribed.');
-            }
-        });
-}
-
-// ---------- Everyone Edits side list (unchanged behaviour) ----------
+// ---------- Everyone Edits side list (Supabase) ----------
 
 function renderArticles() {
     const articles = Array.from(articlesById.values())
@@ -301,9 +309,7 @@ async function loadCurrentSession() {
         .limit(1)
         .maybeSingle();
 
-    if (error) {
-        throw new Error(`Could not load active session: ${error.message}`);
-    }
+    if (error) throw new Error(`Could not load active session: ${error.message}`);
 
     currentSessionId = data?.id || null;
     setSessionStatus();
@@ -312,7 +318,6 @@ async function loadCurrentSession() {
 async function loadExistingArticles() {
     if (!currentSessionId) {
         renderArticles();
-        setStatus('WAITING FOR ACTIVE SESSION');
         return;
     }
 
@@ -322,9 +327,7 @@ async function loadExistingArticles() {
         .eq('session_id', currentSessionId)
         .order('created_at', { ascending: false });
 
-    if (error) {
-        throw new Error(`Could not load front page: ${error.message}`);
-    }
+    if (error) throw new Error(`Could not load front page: ${error.message}`);
 
     articlesById.clear();
     data.forEach(addArticle);
@@ -337,7 +340,6 @@ function subscribeToArticles() {
         schema: 'public',
         table: 'frontpage_articles',
     };
-
     if (isSessionPinned && currentSessionId) {
         changes.filter = `session_id=eq.${currentSessionId}`;
     }
@@ -352,42 +354,35 @@ function subscribeToArticles() {
                 setSessionStatus();
             }
             addArticle(payload.new);
-            setStatus('LIVE FROM THE VR NEWSROOM');
         })
-        .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                setStatus('LIVE FROM THE VR NEWSROOM');
-            }
-        });
+        .subscribe();
 }
 
-// ---------- Init ----------
-
-async function init() {
-    formatDate();
-    renderBest();
-    renderInitialGrid();
-
-    if (!isConfigured()) {
-        setStatus('SUPABASE CONFIG NEEDED');
+async function initSupabaseSide() {
+    if (!isSupabaseConfigured()) {
+        console.warn('[everyone-edits] supabase-config.js not filled in; article feed disabled.');
         renderArticles();
         return;
     }
-
     try {
         supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         await loadCurrentSession();
         setSessionStatus();
         await loadExistingArticles();
         subscribeToArticles();
-        subscribeToCitizenLens();
-    } catch (error) {
-        console.error(error);
-        setStatus('NEWSROOM CONNECTION ERROR');
-        // Citizen Lens broadcasts are independent of sessions/articles, so
-        // keep the photo wall alive even if the article side failed.
-        if (supabase) subscribeToCitizenLens();
+    } catch (err) {
+        console.error('[everyone-edits]', err);
+        renderArticles();
     }
+}
+
+// ---------- Init ----------
+
+function init() {
+    formatDate();
+    renderBest();
+    renderInitialGrid();
+    initSupabaseSide(); // citizen-lens side bootstraps itself via socket.io events
 }
 
 init();

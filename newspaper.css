@@ -215,8 +215,6 @@ body {
     overflow: hidden;
 }
 
-/* ---- Top half: BEST NEWS ---- */
-
 .best-news {
     min-height: 0;
     min-width: 0;
@@ -296,8 +294,6 @@ body {
     -webkit-box-orient: vertical;
 }
 
-/* ---- Bottom half: 4x2 live grid (square slots) ---- */
-
 .citizen-photo-grid {
     min-height: 0;
     min-width: 0;
@@ -340,7 +336,6 @@ body {
     filter: grayscale(0.78) sepia(0.45) contrast(1.22) brightness(0.94);
 }
 
-/* Flicker animation while shuffling the bottom grid */
 .citizen-slot.flickering {
     animation: citizen-flicker 0.45s ease-in-out;
 }
