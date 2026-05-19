@@ -88,13 +88,8 @@ body {
     text-transform: uppercase;
 }
 
-.header-top span:first-child {
-    text-align: left;
-}
-
-.header-top span:last-child {
-    text-align: right;
-}
+.header-top span:first-child { text-align: left; }
+.header-top span:last-child { text-align: right; }
 
 .newspaper-header h1 {
     margin: 0;
@@ -118,13 +113,8 @@ body {
     text-transform: uppercase;
 }
 
-.header-info span:first-child {
-    text-align: left;
-}
-
-.header-info span:last-child {
-    text-align: right;
-}
+.header-info span:first-child { text-align: left; }
+.header-info span:last-child { text-align: right; }
 
 .frontpage-grid {
     position: relative;
@@ -179,16 +169,6 @@ body {
     flex-direction: column;
 }
 
-.panel-kicker {
-    margin-bottom: 4px;
-    font-family: 'Old Standard TT', Georgia, serif;
-    font-size: clamp(0.56rem, 0.58vw, 0.7rem);
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--muted-ink);
-}
-
 .section-title {
     margin: 0;
     padding: 3px 0 6px;
@@ -221,126 +201,135 @@ body {
     padding-bottom: 8px;
 }
 
+/* ==========================================================
+   Citizen Lens: top half = BEST NEWS, bottom half = live grid
+   ========================================================== */
+
 .lead-story {
-    min-height: 0;
     flex: 1;
-    display: flex;
-    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: clamp(10px, 1vw, 16px);
     overflow: hidden;
+}
+
+/* ---- Top half: BEST NEWS ---- */
+
+.best-news {
+    min-height: 0;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    gap: clamp(10px, 1.1vw, 18px);
+    overflow: hidden;
+    align-items: stretch;
+}
+
+.best-news-photo {
+    min-height: 0;
+    min-width: 0;
+    height: 100%;
+    aspect-ratio: 1 / 1;
     position: relative;
-}
-
-.lead-story h3 {
-    margin: 10px 0 6px;
-    font-family: 'Old Standard TT', Georgia, serif;
-    font-size: clamp(1.6rem, 2.35vw, 3.2rem);
-    line-height: 0.92;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    text-transform: uppercase;
-}
-
-.lead-story p {
-    margin: 0 0 8px;
-    font-size: clamp(0.76rem, 0.8vw, 0.94rem);
-    line-height: 1.45;
-    text-align: justify;
-}
-
-.lead-story p:not(.lead-subtitle) {
-    display: -webkit-box;
     overflow: hidden;
-    -webkit-line-clamp: 7;
-    -webkit-box-orient: vertical;
-}
-
-.lead-subtitle {
-    font-weight: 700;
-    font-style: italic;
-}
-
-.lead-figure {
-    min-height: 0;
-    margin: 0;
-}
-
-.lead-figure img {
-    display: block;
-    width: 100%;
-    height: clamp(250px, 44vh, 520px);
-    object-fit: cover;
-    filter: grayscale(0.78) sepia(0.45) contrast(1.22) brightness(0.94);
-    border: 1px solid var(--rule-color);
-    padding: 5px;
     background: var(--paper-warm);
+    border: 1px solid var(--rule-color);
+    padding: clamp(3px, 0.4vw, 6px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
 
-.lead-figure figcaption {
-    margin-top: 4px;
-    font-size: 0.68rem;
-    font-style: italic;
-    text-align: right;
-    color: var(--muted-ink);
-}
-
-.empty-slot,
-.image-placeholder {
+.best-news-photo img {
     width: 100%;
-    min-height: 240px;
-    flex: 1;
-    border: 1px dashed rgba(22, 19, 15, 0.6);
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: grayscale(0.78) sepia(0.45) contrast(1.22) brightness(0.94);
+}
+
+.empty-best {
+    width: 100%;
+    height: 100%;
+    border: 1px dashed rgba(22, 19, 15, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
-    color: var(--muted-ink);
     text-align: center;
+    color: var(--muted-ink);
     font-style: italic;
-    background: linear-gradient(135deg, rgba(22, 19, 15, 0.04), transparent 42%),
-        rgba(255, 255, 255, 0.16);
+    font-size: clamp(0.7rem, 0.78vw, 0.92rem);
+    padding: 12px;
 }
 
-.image-placeholder {
-    aspect-ratio: 4 / 3;
+.best-news-text {
+    min-width: 0;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow: hidden;
 }
 
-/* =========================================================================
-   Citizen Lens live photo grid
-   - 8 reserved positions (4 rows x 2 columns)
-   - Slots are invisible until JS adds .filled
-   - Grid itself only shows when .lead-story.has-photos (set by newspaper.js
-     the moment the first photo arrives via Supabase broadcast)
-   - Sizing is driven entirely by 1fr units, so the grid adapts to whatever
-     space the Citizen Lens panel currently gives it - no fixed dimensions.
-   ========================================================================= */
+.best-news-title {
+    margin: 0;
+    font-family: 'Old Standard TT', Georgia, serif;
+    font-size: clamp(1.3rem, 1.7vw, 2.4rem);
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--rule-color);
+    padding-bottom: 4px;
+}
+
+.best-news-body {
+    margin: 0;
+    font-size: clamp(0.74rem, 0.78vw, 0.94rem);
+    line-height: 1.42;
+    text-align: justify;
+    color: var(--ink-color);
+    flex: 1;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 8;
+    -webkit-box-orient: vertical;
+}
+
+/* ---- Bottom half: 4x2 live grid (square slots) ---- */
 
 .citizen-photo-grid {
-    display: none;
-    flex: 1;
     min-height: 0;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(4, minmax(0, 1fr));
-    gap: clamp(6px, 0.7vw, 12px);
-}
-
-.lead-story.has-photos .citizen-photo-grid {
+    min-width: 0;
     display: grid;
-}
-
-.lead-story.has-photos #lead-empty {
-    display: none;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: clamp(6px, 0.7vw, 12px);
+    overflow: hidden;
 }
 
 .citizen-slot {
     min-width: 0;
     min-height: 0;
+    aspect-ratio: 1 / 1;
     overflow: hidden;
-    visibility: hidden; /* reserved position, invisible until filled */
+    position: relative;
+    background: rgba(22, 19, 15, 0.04);
+    border: 1px dashed rgba(22, 19, 15, 0.18);
+    align-self: center;
+    justify-self: center;
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    transition: opacity 0.2s ease;
 }
 
 .citizen-slot.filled {
-    visibility: visible;
+    border-style: solid;
+    border-color: var(--rule-color);
+    padding: clamp(2px, 0.3vw, 4px);
+    background: var(--paper-warm);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
 .citizen-slot img {
@@ -349,11 +338,24 @@ body {
     object-fit: cover;
     display: block;
     filter: grayscale(0.78) sepia(0.45) contrast(1.22) brightness(0.94);
-    border: 1px solid var(--rule-color);
-    padding: clamp(2px, 0.3vw, 4px);
-    background: var(--paper-warm);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
+
+/* Flicker animation while shuffling the bottom grid */
+.citizen-slot.flickering {
+    animation: citizen-flicker 0.45s ease-in-out;
+}
+
+@keyframes citizen-flicker {
+    0%, 100% { opacity: 1; }
+    20% { opacity: 0.08; }
+    40% { opacity: 0.85; }
+    60% { opacity: 0.18; }
+    80% { opacity: 0.75; }
+}
+
+/* ==========================================================
+   Everyone Edits / Legends / What's On (unchanged)
+   ========================================================== */
 
 .article-list {
     flex: 1;

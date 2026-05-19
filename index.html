@@ -24,12 +24,26 @@
                 <section class="newspaper-panel citizen-lens-panel">
                     <h2 class="section-title">CITIZEN LENS</h2>
                     <p class="section-intro">The day's headlines, framed by the people who live them.</p>
+
                     <div class="lead-story" id="lead-story">
-                        <div class="empty-slot" id="lead-empty">Waiting for the first interview</div>
-                        <!-- Eight reserved photo positions. Invisible until the
-                             matching slot is filled by a broadcast from
-                             capture.html. Slot count, sizing, and FIFO behaviour
-                             are handled in newspaper.js / newspaper.css. -->
+                        <!-- Top half: BEST NEWS -->
+                        <div class="best-news">
+                            <div class="best-news-photo" id="best-news-photo">
+                                <div class="empty-best">Awaiting votes</div>
+                            </div>
+                            <div class="best-news-text">
+                                <h3 class="best-news-title">BEST NEWS</h3>
+                                <p class="best-news-body" id="best-news-body">
+                                    Today's most-voted story from the streets of Gothenburg.
+                                    Readers cast their ballots in the photo booth across the
+                                    square, and the leading frame rises to the front page in
+                                    real time. Placeholder copy &mdash; the running narrative
+                                    will be written here as the story develops.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Bottom half: live 4x2 photo grid (8 reserved slots) -->
                         <div class="citizen-photo-grid" id="citizen-photo-grid">
                             <div class="citizen-slot" data-slot="0"></div>
                             <div class="citizen-slot" data-slot="1"></div>
