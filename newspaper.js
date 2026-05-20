@@ -1,7 +1,7 @@
 // Newspaper / Display client.
 //
 // Three independent data channels:
-//   1. Citizen Lens photos -> Socket.IO to our own server.js (same origin).
+//   1. Citizen Lens photos -> Supabase Realtime on `citizen_photos`.
 //   2. Everyone Edits articles -> Supabase Realtime on `frontpage_articles`,
 //      populated by the Typewriter project's publisher.
 //   3. Today's Legendary Visitors -> Supabase Realtime on `interviews`,
@@ -9,14 +9,13 @@
 //      The npc_id column matches a `data-subject-id` on a .legend-card and
 //      causes that card to flip from locked -> unlocked.
 //
-// The photo channel maintains a local mirror of the server's photoLibrary
-// (cap 100). Top half = BEST NEWS (the photo with the highest vote count,
-// >= 1 vote). Bottom half = 4x2 grid that fills sequentially until 8 photos
-// have arrived, then switches to a flicker loop that randomly reshuffles
-// visible photos from the library every 2.5s.
+// The photo channel maintains a local mirror of `citizen_photos` (cap 100).
+// Top half = BEST NEWS (the photo with the highest vote count, >= 1 vote).
+// Bottom half = 4x2 grid that fills sequentially until 8 photos have
+// arrived, then switches to a flicker loop that randomly reshuffles visible
+// photos from the library every 2.5s.
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { io } from 'https://cdn.socket.io/4.7.5/socket.io.esm.min.js';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './supabase-config.js';
 
 // ---------- DOM ----------
@@ -39,6 +38,7 @@ const FLICKER_FADE_MS = 200;
 // ---------- State ----------
 
 const photoLibrary = []; // [{id, dataUrl, votes, createdAt}]
+const photoSessionIds = new Set();
 let flickerTimerId = null;
 
 const articlesById = new Map();
@@ -217,96 +217,17 @@ function bindNewsListScrollControls() {
     });
 }
 
-function shouldUseCitizenLensSocket() {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('socket') === '1') return true;
-    if (params.get('socket') === '0') return false;
-    const port = window.location.port;
-    if (port === '3000' || port === '5173') return true;
-    return false;
-}
-
-function initCitizenLensSocket() {
-    if (!shouldUseCitizenLensSocket()) {
-        console.info(
-            '[citizen-lens] Socket.IO skipped on this host (static preview). ' +
-                'Add ?socket=1 when a Socket.IO server is running, e.g. on port 3000.'
-        );
-        return;
-    }
-
-    const socket = io();
-
-    socket.on('connect', () => {
-        console.log('[citizen-lens] socket connected:', socket.id);
-        setStatus('CITIZEN LENS LIVE');
-    });
-
-    socket.on('disconnect', (reason) => {
-        console.log('[citizen-lens] socket disconnected:', reason);
-        setStatus('CITIZEN LENS OFFLINE');
-    });
-
-    socket.on('connect_error', (err) => {
-        console.warn('[citizen-lens] socket connect_error:', err.message);
-        setStatus('CITIZEN LENS OFFLINE');
-    });
-
-    socket.on('photo:state', ({ library }) => {
-        photoLibrary.length = 0;
-        if (Array.isArray(library)) library.forEach(addPhotoToLibrary);
-
-        renderBest();
-        renderInitialGrid();
-        if (photoLibrary.length >= VISIBLE_SLOTS) {
-            ensureFlickerRunning();
-        } else {
-            stopFlicker();
-        }
-    });
-
-    socket.on('photo:added', (photo) => {
-        if (!photo || !photo.id) return;
-        if (photoLibrary.some((p) => p.id === photo.id)) return;
-
-        addPhotoToLibrary(photo);
-        renderBest();
-
-        if (photoLibrary.length < VISIBLE_SLOTS) {
-            renderInitialGrid();
-        } else if (photoLibrary.length === VISIBLE_SLOTS) {
-            renderInitialGrid();
-            ensureFlickerRunning();
-        } else {
-            const slots = getSlotEls();
-            const slot = slots[Math.floor(Math.random() * slots.length)];
-            flickerInto(slot, photoLibrary[photoLibrary.length - 1]);
-        }
-    });
-
-    socket.on('photo:voted', ({ id, votes }) => {
-        applyVote(id, votes);
-        renderBest();
-    });
-}
-
 // ---------- Citizen Lens: library + BEST ----------
 
 function addPhotoToLibrary(photo) {
     if (!photo || !photo.id || photoLibrary.some((p) => p.id === photo.id)) return;
     photoLibrary.push({
         id: photo.id,
-        dataUrl: photo.dataUrl,
-        votes: typeof photo.votes === 'number' ? photo.votes : 0,
-        createdAt: photo.createdAt || new Date().toISOString(),
+        dataUrl: photo.dataUrl || photo.image_data || '',
+        votes: typeof photo.votes === 'number' ? photo.votes : Number(photo.votes || 0),
+        createdAt: photo.createdAt || photo.created_at || new Date().toISOString(),
     });
     while (photoLibrary.length > MAX_LIBRARY) photoLibrary.shift();
-}
-
-function applyVote(photoId, votes) {
-    const photo = photoLibrary.find((p) => p.id === photoId);
-    if (!photo) return;
-    photo.votes = typeof votes === 'number' ? votes : photo.votes + 1;
 }
 
 function getBestPhoto() {
@@ -400,6 +321,87 @@ function stopFlicker() {
         clearInterval(flickerTimerId);
         flickerTimerId = null;
     }
+}
+
+function setCitizenLensStatus() {
+    setStatus('CITIZEN LENS LIVE');
+}
+
+function getCitizenLensSessionFilter() {
+    return currentSessionId || getSessionIdFromUrl() || null;
+}
+
+async function loadCitizenLensPhotos() {
+    if (!supabase) return;
+
+    let query = supabase
+        .from('citizen_photos')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(MAX_LIBRARY);
+
+    const sessionId = getCitizenLensSessionFilter();
+    if (sessionId) query = query.eq('session_id', sessionId);
+
+    const { data, error } = await query;
+    if (error) {
+        console.warn('[citizen-lens] Could not load photos:', error.message);
+        setStatus('CITIZEN LENS OFFLINE');
+        return;
+    }
+
+    photoLibrary.length = 0;
+    photoSessionIds.clear();
+    (data || []).forEach((row) => {
+        photoSessionIds.add(row.session_id || 'global');
+        addPhotoToLibrary(row);
+    });
+
+    renderBest();
+    renderInitialGrid();
+    if (photoLibrary.length >= VISIBLE_SLOTS) ensureFlickerRunning();
+    else stopFlicker();
+}
+
+function subscribeToCitizenLensPhotos() {
+    if (!supabase) return;
+
+    const sessionId = getCitizenLensSessionFilter();
+    const changes = {
+        event: '*',
+        schema: 'public',
+        table: 'citizen_photos',
+    };
+    if (sessionId) changes.filter = `session_id=eq.${sessionId}`;
+
+    supabase
+        .channel(sessionId ? `citizen-photos:${sessionId}` : 'citizen-photos')
+        .on('postgres_changes', changes, (payload) => {
+            const row = payload.new || payload.old;
+            if (!row) return;
+            if (payload.eventType === 'DELETE') {
+                const idx = photoLibrary.findIndex((p) => p.id === row.id);
+                if (idx >= 0) photoLibrary.splice(idx, 1);
+            } else {
+                addPhotoToLibrary(row);
+                if (row.votes !== undefined) {
+                    const photo = photoLibrary.find((p) => p.id === row.id);
+                    if (photo) photo.votes = Number(row.votes || 0);
+                }
+            }
+
+            renderBest();
+            renderInitialGrid();
+            if (photoLibrary.length >= VISIBLE_SLOTS) ensureFlickerRunning();
+            else stopFlicker();
+            setCitizenLensStatus();
+        })
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') setCitizenLensStatus();
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                console.warn(`[citizen-lens] photos subscription status: ${status}.`);
+            }
+        });
 }
 
 // ---------- Everyone Edits side list (Supabase) ----------
@@ -699,6 +701,8 @@ async function initSupabaseSide() {
         supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         await loadCurrentSession();
         setSessionStatus();
+        await loadCitizenLensPhotos();
+        subscribeToCitizenLensPhotos();
         await loadExistingArticles();
         await loadUnlockedLegends();
         subscribeToArticles();
@@ -715,10 +719,7 @@ async function initSupabaseSide() {
 
 function init() {
     formatDate();
-    renderBest();
-    renderInitialGrid();
     bindNewsListScrollControls();
-    initCitizenLensSocket();
     initSupabaseSide();
 }
 
