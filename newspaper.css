@@ -240,7 +240,7 @@ body {
     min-height: 0;
     min-width: 0;
     height: 100%;
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 4 / 3;
     position: relative;
     overflow: hidden;
     background: var(--paper-warm);
@@ -254,7 +254,6 @@ body {
     height: 100%;
     object-fit: cover;
     display: block;
-    filter: grayscale(0.78) sepia(0.45) contrast(1.22) brightness(0.94);
 }
 
 .empty-best {
@@ -344,7 +343,6 @@ body {
     height: 100%;
     object-fit: cover;
     display: block;
-    filter: grayscale(0.78) sepia(0.45) contrast(1.22) brightness(0.94);
 }
 
 .citizen-slot.flickering {
