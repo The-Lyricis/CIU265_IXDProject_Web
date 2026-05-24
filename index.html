@@ -64,88 +64,79 @@
                     <p class="section-intro">Step into a conversation with the figures shaping our time.</p>
                     <div class="legends-grid" id="legends-grid">
                         <!--
-                            每张卡片：
-                              data-subject-id  ← 必须和 Unity StorySubject.subjectId 完全一致
-                              data-name        ← 解锁后显示的姓名
-                              data-title       ← 解锁后显示的副标题（职业/年代）
-                              data-intro       ← 解锁后显示的简介
-                              data-photo       ← 解锁后显示的头像图片路径（可留空）
+                            ┌────────────────────────────────────────────────────────┐
+                            │  单图卡片 / IMAGE-ONLY LEGEND CARDS                       │
+                            │                                                          │
+                            │  每张卡 = 一整张图。locked 时显示 data-locked-img，        │
+                            │  解锁后由 newspaper.js 换成 data-unlocked-img。            │
+                            │                                                          │
+                            │  ✅ 如何添加你自己的图片：                                  │
+                            │     1. 把图片放进项目里，例如 /img/legends/ 文件夹。        │
+                            │     2. 在下面对应卡片上填好两个属性的图片路径：             │
+                            │          data-locked-img="你的锁定图.png"                  │
+                            │          data-unlocked-img="你的解锁图.png"                │
+                            │     3. 两个属性留空时，卡片显示占位框（当前状态）。         │
+                            │                                                          │
+                            │  ⚠️ data-subject-id 千万别改 —— 必须和 Unity              │
+                            │     StorySubject.subjectId 完全一致，否则解锁切图失效。     │
+                            │                                                          │
+                            │  出图建议：横向 5:4（约 1000×800），内容居中。             │
+                            └────────────────────────────────────────────────────────┘
                         -->
-                        <article class="legend-card locked" 
-                        data-subject-id="ferdinand_lundquist" 
-                        data-name="Ferdinand Lundquist" 
-                        data-title="Merchant &middot; Department store founder" 
-                        data-intro="Hear the story behind one of Gothenburg's most enduring family businesses."
-                        data-photo="/img/legends/Ferdinand_Lundquist_portrait_card.png">>
-                            <div class="legend-photo">
-                                <div class="legend-photo-placeholder">Awaiting visitor</div>
-                            </div>
-                            <div class="legend-copy">
-                                <h3 class="legend-name">&#8212; &#8212; &#8212;</h3>
-                                <p class="legend-title">Identity locked</p>
-                                <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
+                        <article class="legend-card legend-card--img locked"
+                                 data-subject-id="ferdinand_lundquist"
+                                 data-name="Ferdinand Lundquist"
+                                 data-locked-img="ferdinand_unlocked.png"
+                                 data-unlocked-img="/img/legends/ferdinand_unlocked.png">
+                            <div class="legend-card-placeholder">
+                                <span>FERDINAND LUNDQUIST</span>
+                                <span>放图片 · 5:4 · 约 1000×800</span>
                             </div>
                         </article>
-                        <article class="legend-card locked" 
-                        data-subject-id="harry_hjorne" 
-                        data-name="HARRY HJÖRNE" 
-                        data-title="Title &middot; Profession" 
-                        data-intro="A short introduction for today's visitor."
-                        data-photo="/img/legends/Harry_Hjorne_portrait_card.png">
-                            <div class="legend-photo">
-                                <div class="legend-photo-placeholder">Awaiting visitor</div>
-                            </div>
-                            <div class="legend-copy">
-                                <h3 class="legend-name">— — —</h3>
-                                <p class="legend-title">Identity locked</p>
-                                <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
+                        <article class="legend-card legend-card--img locked"
+                                 data-subject-id="harry_hjorne"
+                                 data-name="Harry Hjörne"
+                                 data-locked-img="/img/legends/harry_hjorne_locked.png"
+                                 data-unlocked-img="/img/legends/harry_hjorne_unlocked.png">
+                            <div class="legend-card-placeholder">
+                                <span>HARRY HJÖRNE</span>
+                                <span>放图片 · 5:4 · 约 1000×800</span>
                             </div>
                         </article>
-                        <article class="legend-card locked" 
-                        data-subject-id="ingrid_segerstedt_wiberg" 
-                        data-name="INGRID SEGERSTEDT-WIBERG" 
-                        data-title="Title &middot; Profession" 
-                        data-intro="A short introduction for today's visitor."
-                        data-photo="/img/legends/Ingrid_Segerstedt_Wiberg_portrait_card.png">
-                            <div class="legend-photo">
-                                <div class="legend-photo-placeholder">Awaiting visitor</div>
-                            </div>
-                            <div class="legend-copy">
-                                <h3 class="legend-name">— — —</h3>
-                                <p class="legend-title">Identity locked</p>
-                                <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
+                        <article class="legend-card legend-card--img locked"
+                                 data-subject-id="ingrid_segerstedt_wiberg"
+                                 data-name="Ingrid Segerstedt-Wiberg"
+                                 data-locked-img="/img/legends/ingrid_segerstedt_wiberg_locked.png"
+                                 data-unlocked-img="/img/legends/ingrid_segerstedt_wiberg_unlocked.png">
+                            <div class="legend-card-placeholder">
+                                <span>INGRID SEGERSTEDT-WIBERG</span>
+                                <span>放图片 · 5:4 · 约 1000×800</span>
                             </div>
                         </article>
-                        <article class="legend-card locked" 
-                        data-subject-id="torgny_segerstedt" 
-                        data-name="TORGNY SEGERSTEDT" 
-                        data-title="Title &middot; Profession" 
-                        data-intro="A short introduction for today's visitor."
-                        data-photo="/img/legends/Torgny_Segerstedt_portrait_card.png">
-                            <div class="legend-photo">
-                                <div class="legend-photo-placeholder">Awaiting visitor</div>
-                            </div>
-                            <div class="legend-copy">
-                                <h3 class="legend-name">— — —</h3>
-                                <p class="legend-title">Identity locked</p>
-                                <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
+                        <article class="legend-card legend-card--img locked"
+                                 data-subject-id="torgny_segerstedt"
+                                 data-name="Torgny Segerstedt"
+                                 data-locked-img="/img/legends/torgny_segerstedt_locked.png"
+                                 data-unlocked-img="/img/legends/torgny_segerstedt_unlocked.png">
+                            <div class="legend-card-placeholder">
+                                <span>TORGNY SEGERSTEDT</span>
+                                <span>放图片 · 5:4 · 约 1000×800</span>
                             </div>
                         </article>
-                        <article class="legend-card locked" 
-                        data-subject-id="william_chalmers" 
-                        data-name="WILLIAM CHALMERS" 
-                        data-title="Title &middot; Profession" 
-                        data-intro="A short introduction for today's visitor."
-                        data-photo="/img/legends/William_Chalmers_portrait_card.png">
-                            <div class="legend-photo">
-                                <div class="legend-photo-placeholder">Awaiting visitor</div>
-                            </div>
-                            <div class="legend-copy">
-                                <h3 class="legend-name">— — —</h3>
-                                <p class="legend-title">Identity locked</p>
-                                <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
+                        <article class="legend-card legend-card--img locked"
+                                 data-subject-id="william_chalmers"
+                                 data-name="William Chalmers"
+                                 data-locked-img="/img/legends/william_chalmers_locked.png"
+                                 data-unlocked-img="/img/legends/william_chalmers_unlocked.png">
+                            <div class="legend-card-placeholder">
+                                <span>WILLIAM CHALMERS</span>
+                                <span>放图片 · 5:4 · 约 1000×800</span>
                             </div>
                         </article>
+                        <!-- 第 6 格：右下角 img 照片占位区 -->
+                        <div class="legend-imgslot" id="legend-imgslot">
+                            <!-- 在此放入图片： <img src="/img/legends/your-image.png" alt=""> -->
+                        </div>
                     </div>
                 </section>
                 <aside class="newspaper-panel absurd-poll-panel" aria-labelledby="absurd-poll-title">
