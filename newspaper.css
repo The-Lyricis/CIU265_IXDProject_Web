@@ -832,3 +832,68 @@ body {
         grid-template-columns: 1fr;
     }
 }
+/* ==========================================================
+   单图传奇卡片 / IMAGE-ONLY LEGEND CARDS
+   每张卡 = 一整张图；locked 与 unlocked 分别是两张预设图。
+   ========================================================== */
+.legend-card--img {
+    display: block;          /* 覆盖原本的两列网格布局 */
+    grid-template-columns: none;
+    padding: 0;              /* 让图片铺满整格，由卡片边框充当画框 */
+    gap: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.legend-card--img .legend-card-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;       /* 想完全不裁切就改成 contain（会留出空边） */
+}
+
+/* 占位框：两个 data-*-img 都为空时显示 */
+.legend-card--img .legend-card-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px;
+    text-align: center;
+    line-height: 1.25;
+    font-family: 'Old Standard TT', Georgia, serif;
+    font-style: italic;
+    color: var(--muted-ink);
+}
+
+.legend-card--img .legend-card-placeholder span:first-child {
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: clamp(0.58rem, 0.7vw, 0.82rem);
+}
+
+.legend-card--img .legend-card-placeholder span:last-child {
+    font-size: clamp(0.5rem, 0.58vw, 0.66rem);
+}
+
+/* 一旦放入图片，画框变成实线（覆盖 locked 的虚线外观） */
+.legend-card--img:has(.legend-card-img) {
+    border-style: solid;
+    border-color: var(--rule-color);
+    background: var(--paper-warm);
+}
+
+/* 解锁换图时的浮现动画（不加旧的褐色/灰度滤镜，保留你成图的原色） */
+.legend-card--img.unlocked .legend-card-img {
+    animation: legend-img-reveal 0.7s ease-out;
+}
+
+@keyframes legend-img-reveal {
+    0%   { opacity: 0; transform: scale(1.04); }
+    100% { opacity: 1; transform: scale(1); }
+}

@@ -549,6 +549,30 @@ function findLegendCard(subjectId) {
     return legendsGrid.querySelector(`.legend-card[data-subject-id="${safe}"]`);
 }
 
+// Set (or replace) a card's single image. Empty src => leave the placeholder.
+function setLegendImage(card, src, alt) {
+    if (!card || !src) return;
+    let img = card.querySelector('.legend-card-img');
+    if (!img) {
+        // First image for this card: drop the placeholder and insert an <img>.
+        card.innerHTML = '';
+        img = document.createElement('img');
+        img.className = 'legend-card-img';
+        card.appendChild(img);
+    }
+    img.alt = alt || '';
+    img.src = src;
+}
+
+// On page load, paint each card with its locked image (if a path is given).
+function initLegendImages() {
+    if (!legendsGrid) return;
+    legendsGrid.querySelectorAll('.legend-card--img').forEach((card) => {
+        const lockedSrc = card.dataset.lockedImg || '';
+        if (lockedSrc) setLegendImage(card, lockedSrc, card.dataset.name || '');
+    });
+}
+
 function unlockLegend(subjectId) {
     if (!subjectId) return;
     if (unlockedSubjectIds.has(subjectId)) return;
@@ -564,29 +588,9 @@ function unlockLegend(subjectId) {
 
     unlockedSubjectIds.add(subjectId);
 
-    const name  = card.dataset.name  || '';
-    const title = card.dataset.title || '';
-    const intro = card.dataset.intro || '';
-    const photo = card.dataset.photo || '';
-
-    const nameEl  = card.querySelector('.legend-name');
-    const titleEl = card.querySelector('.legend-title');
-    const introEl = card.querySelector('.legend-intro');
-    const photoEl = card.querySelector('.legend-photo');
-
-    if (nameEl  && name)  nameEl.innerHTML  = name;   // innerHTML so &middot; etc. render
-    if (titleEl && title) titleEl.innerHTML = title;
-    if (introEl && intro) introEl.textContent = intro;
-
-    if (photoEl) {
-        if (photo) {
-            photoEl.innerHTML =
-                `<img src="${escapeHtml(photo)}" alt="${escapeHtml(name)}">`;
-        } else {
-            photoEl.innerHTML =
-                `<div class="legend-photo-placeholder">No portrait on file</div>`;
-        }
-    }
+    // Swap the locked image for the unlocked one.
+    const unlockedSrc = card.dataset.unlockedImg || '';
+    if (unlockedSrc) setLegendImage(card, unlockedSrc, card.dataset.name || '');
 
     // Brief flicker so newly unlocked cards visually announce themselves,
     // then switch the persistent state class.
@@ -625,28 +629,10 @@ function instantUnlock(subjectId) {
     if (!card || unlockedSubjectIds.has(subjectId)) return;
     unlockedSubjectIds.add(subjectId);
 
-    const name  = card.dataset.name  || '';
-    const title = card.dataset.title || '';
-    const intro = card.dataset.intro || '';
-    const photo = card.dataset.photo || '';
+    // Reveal the unlocked image immediately, no announce-flicker.
+    const unlockedSrc = card.dataset.unlockedImg || '';
+    if (unlockedSrc) setLegendImage(card, unlockedSrc, card.dataset.name || '');
 
-    const nameEl  = card.querySelector('.legend-name');
-    const titleEl = card.querySelector('.legend-title');
-    const introEl = card.querySelector('.legend-intro');
-    const photoEl = card.querySelector('.legend-photo');
-
-    if (nameEl  && name)  nameEl.innerHTML  = name;
-    if (titleEl && title) titleEl.innerHTML = title;
-    if (introEl && intro) introEl.textContent = intro;
-    if (photoEl) {
-        if (photo) {
-            photoEl.innerHTML =
-                `<img src="${escapeHtml(photo)}" alt="${escapeHtml(name)}">`;
-        } else {
-            photoEl.innerHTML =
-                `<div class="legend-photo-placeholder">No portrait on file</div>`;
-        }
-    }
     card.classList.remove('locked');
     card.classList.add('unlocked');
 }
@@ -719,6 +705,7 @@ async function initSupabaseSide() {
 
 function init() {
     formatDate();
+    initLegendImages();
     bindNewsListScrollControls();
     initSupabaseSide();
 }

@@ -64,96 +64,73 @@
                     <p class="section-intro">Step into a conversation with the figures shaping our time.</p>
                     <div class="legends-grid" id="legends-grid">
                         <!--
-                            每张卡片：
-                              data-subject-id  ← 必须和 Unity StorySubject.subjectId 完全一致
-                              data-name        ← 解锁后显示的姓名
-                              data-title       ← 解锁后显示的副标题（职业 / 身份）
-                              data-intro       ← 解锁后显示的简介 / 趣事
-                              data-photo       ← 解锁后显示的头像图片路径（可留空）
+                            ┌────────────────────────────────────────────────────────┐
+                            │  单图卡片 / IMAGE-ONLY LEGEND CARDS                       │
+                            │                                                          │
+                            │  每张卡 = 一整张图。locked 时显示 data-locked-img，        │
+                            │  解锁后由 newspaper.js 换成 data-unlocked-img。            │
+                            │                                                          │
+                            │  ✅ 如何添加你自己的图片：                                  │
+                            │     1. 把图片放进项目里，例如 /img/legends/ 文件夹。        │
+                            │     2. 在下面对应卡片上填好两个属性的图片路径：             │
+                            │          data-locked-img="你的锁定图.png"                  │
+                            │          data-unlocked-img="你的解锁图.png"                │
+                            │     3. 两个属性留空时，卡片显示占位框（当前状态）。         │
+                            │                                                          │
+                            │  ⚠️ data-subject-id 千万别改 —— 必须和 Unity              │
+                            │     StorySubject.subjectId 完全一致，否则解锁切图失效。     │
+                            │                                                          │
+                            │  出图建议：横向 5:4（约 1000×800），内容居中。             │
+                            └────────────────────────────────────────────────────────┘
                         -->
-                        <article class="legend-card locked" data-subject-id="ferdinand_lundquist" data-name="FERDINAND LUNDQUIST" data-title="Merchant &middot; Department-store pioneer" data-intro="Opened his shop on Östra Hamngatan in 1864 with one room, one assistant, and a single display window. It grew, floor by floor, into the building that became NK." data-photo="/img/legends/Ferdinand_Lundquist_portrait_card.png">
-                            <div class="legend-left">
-                                <div class="legend-photo">
-                                    <!-- 照片替换区 / PHOTO SLOT:
-                                         解锁后由 newspaper.js 注入 <img>。
-                                         未解锁时可在此放入处理过的剪影图，例如：
-                                         <img class="legend-silhouette" src="/img/legends/xxx_silhouette.png" alt=""> -->
-                                    <div class="legend-photo-placeholder">Awaiting visitor</div>
-                                </div>
-                                <h3 class="legend-name">LOCKED</h3>
-                                <p class="legend-title">Awaiting interview</p>
-                            </div>
-                            <div class="legend-right">
-                                <h4 class="legend-funfact-label">FUN FACT</h4>
-                                <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
+                        <article class="legend-card legend-card--img locked"
+                                 data-subject-id="ferdinand_lundquist"
+                                 data-name="Ferdinand Lundquist"
+                                 data-locked-img="ferdinand_unlocked.png"
+                                 data-unlocked-img="/img/legends/ferdinand_unlocked.png">
+                            <div class="legend-card-placeholder">
+                                <span>FERDINAND LUNDQUIST</span>
+                                <span>放图片 · 5:4 · 约 1000×800</span>
                             </div>
                         </article>
-                        <article class="legend-card locked" data-subject-id="harry_hjorne" data-name="HARRY HJÖRNE" data-title="Newspaper baron &middot; Editor of Göteborgs-Posten" data-intro="Built GP into Sweden's second-biggest morning paper. Wrote his famous column &lsquo;Små, små ord av kärlek&rsquo; in the voice of his dachshunds &mdash; and spent decades in a press war with Torgny Segerstedt across town." data-photo="/img/legends/Harry_Hjorne_portrait_card.png">
-                            <div class="legend-left">
-                                <div class="legend-photo">
-                                    <!-- 照片替换区 / PHOTO SLOT:
-                                         解锁后由 newspaper.js 注入 <img>。
-                                         未解锁时可在此放入处理过的剪影图，例如：
-                                         <img class="legend-silhouette" src="/img/legends/xxx_silhouette.png" alt=""> -->
-                                    <div class="legend-photo-placeholder">Awaiting visitor</div>
-                                </div>
-                                <h3 class="legend-name">LOCKED</h3>
-                                <p class="legend-title">Awaiting interview</p>
-                            </div>
-                            <div class="legend-right">
-                                <h4 class="legend-funfact-label">FUN FACT</h4>
-                                <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
+                        <article class="legend-card legend-card--img locked"
+                                 data-subject-id="harry_hjorne"
+                                 data-name="Harry Hjörne"
+                                 data-locked-img="/img/legends/harry_hjorne_locked.png"
+                                 data-unlocked-img="/img/legends/harry_hjorne_unlocked.png">
+                            <div class="legend-card-placeholder">
+                                <span>HARRY HJÖRNE</span>
+                                <span>放图片 · 5:4 · 约 1000×800</span>
                             </div>
                         </article>
-                        <article class="legend-card locked" data-subject-id="ingrid_segerstedt_wiberg" data-name="INGRID SEGERSTEDT-WIBERG" data-title="Journalist &middot; Peace activist" data-intro="Torgny Segerstedt's daughter &mdash; who shocked Göteborg by taking a job at her father's rival GP after his death. Later wrote loving biographies of both her father and Harry Hjörne." data-photo="/img/legends/Ingrid_Segerstedt_Wiberg_portrait_card.png">
-                            <div class="legend-left">
-                                <div class="legend-photo">
-                                    <!-- 照片替换区 / PHOTO SLOT:
-                                         解锁后由 newspaper.js 注入 <img>。
-                                         未解锁时可在此放入处理过的剪影图，例如：
-                                         <img class="legend-silhouette" src="/img/legends/xxx_silhouette.png" alt=""> -->
-                                    <div class="legend-photo-placeholder">Awaiting visitor</div>
-                                </div>
-                                <h3 class="legend-name">LOCKED</h3>
-                                <p class="legend-title">Awaiting interview</p>
-                            </div>
-                            <div class="legend-right">
-                                <h4 class="legend-funfact-label">FUN FACT</h4>
-                                <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
+                        <article class="legend-card legend-card--img locked"
+                                 data-subject-id="ingrid_segerstedt_wiberg"
+                                 data-name="Ingrid Segerstedt-Wiberg"
+                                 data-locked-img="/img/legends/ingrid_segerstedt_wiberg_locked.png"
+                                 data-unlocked-img="/img/legends/ingrid_segerstedt_wiberg_unlocked.png">
+                            <div class="legend-card-placeholder">
+                                <span>INGRID SEGERSTEDT-WIBERG</span>
+                                <span>放图片 · 5:4 · 约 1000×800</span>
                             </div>
                         </article>
-                        <article class="legend-card locked" data-subject-id="torgny_segerstedt" data-name="TORGNY SEGERSTEDT" data-title="Editor &middot; Anti-Nazi voice of GHT" data-intro="His editorials against Hitler so enraged Berlin that Sweden set up a press council to keep him in check &mdash; chaired here in Göteborg by his arch-rival Harry Hjörne." data-photo="/img/legends/Torgny_Segerstedt_portrait_card.png">
-                            <div class="legend-left">
-                                <div class="legend-photo">
-                                    <!-- 照片替换区 / PHOTO SLOT:
-                                         解锁后由 newspaper.js 注入 <img>。
-                                         未解锁时可在此放入处理过的剪影图，例如：
-                                         <img class="legend-silhouette" src="/img/legends/xxx_silhouette.png" alt=""> -->
-                                    <div class="legend-photo-placeholder">Awaiting visitor</div>
-                                </div>
-                                <h3 class="legend-name">LOCKED</h3>
-                                <p class="legend-title">Awaiting interview</p>
-                            </div>
-                            <div class="legend-right">
-                                <h4 class="legend-funfact-label">Fun fact</h4>
-                                <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
+                        <article class="legend-card legend-card--img locked"
+                                 data-subject-id="torgny_segerstedt"
+                                 data-name="Torgny Segerstedt"
+                                 data-locked-img="/img/legends/torgny_segerstedt_locked.png"
+                                 data-unlocked-img="/img/legends/torgny_segerstedt_unlocked.png">
+                            <div class="legend-card-placeholder">
+                                <span>TORGNY SEGERSTEDT</span>
+                                <span>放图片 · 5:4 · 约 1000×800</span>
                             </div>
                         </article>
-                        <article class="legend-card locked" data-subject-id="william_chalmers" data-name="WILLIAM CHALMERS" data-title="East India merchant &middot; University benefactor" data-intro="Sailed to Canton at 35, came home rich a decade later. Left his fortune to a &lsquo;trade school for poor children&rsquo; &mdash; which grew into Chalmers University of Technology." data-photo="/img/legends/William_Chalmers_portrait_card.png">
-                            <div class="legend-left">
-                                <div class="legend-photo">
-                                    <!-- 照片替换区 / PHOTO SLOT:
-                                         解锁后由 newspaper.js 注入 <img>。
-                                         未解锁时可在此放入处理过的剪影图，例如：
-                                         <img class="legend-silhouette" src="/img/legends/xxx_silhouette.png" alt=""> -->
-                                    <div class="legend-photo-placeholder">Awaiting visitor</div>
-                                </div>
-                                <h3 class="legend-name">LOCKED</h3>
-                                <p class="legend-title">Awaiting interview</p>
-                            </div>
-                            <div class="legend-right">
-                                <h4 class="legend-funfact-label">Fun fact</h4>
-                                <p class="legend-intro">This visitor has not yet been interviewed in the booth.</p>
+                        <article class="legend-card legend-card--img locked"
+                                 data-subject-id="william_chalmers"
+                                 data-name="William Chalmers"
+                                 data-locked-img="/img/legends/william_chalmers_locked.png"
+                                 data-unlocked-img="/img/legends/william_chalmers_unlocked.png">
+                            <div class="legend-card-placeholder">
+                                <span>WILLIAM CHALMERS</span>
+                                <span>放图片 · 5:4 · 约 1000×800</span>
                             </div>
                         </article>
                         <!-- 第 6 格：右下角 img 照片占位区 -->
