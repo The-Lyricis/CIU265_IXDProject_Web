@@ -174,11 +174,95 @@ body {
     flex-direction: column;
 }
 
-.whats-on-panel {
+.absurd-poll-panel {
     grid-column: 3;
     grid-row: 2;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    padding: clamp(10px, 1vw, 14px) clamp(12px, 1.1vw, 18px);
+}
+
+.absurd-poll-header {
+    flex-shrink: 0;
+    margin-bottom: clamp(6px, 0.6vw, 10px);
+    padding-bottom: clamp(6px, 0.55vw, 8px);
+    border-bottom: 2px solid var(--hairline);
+}
+
+.absurd-poll-title {
+    font-size: clamp(1.15rem, 1.35vw, 1.65rem);
+    letter-spacing: 0.04em;
+    border-bottom: none;
+    padding-bottom: 2px;
+}
+
+.absurd-poll-question {
+    margin: 4px 0 0;
+    font-family: 'PT Serif', Georgia, serif;
+    font-size: clamp(0.62rem, 0.68vw, 0.8rem);
+    line-height: 1.32;
+    font-weight: 700;
+    color: var(--ink-color);
+}
+
+.absurd-poll-results {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(5px, 0.5vw, 7px);
+}
+
+.absurd-poll-empty {
+    margin: 0;
+    font-size: clamp(0.62rem, 0.66vw, 0.78rem);
+    font-style: italic;
+    color: var(--muted-ink);
+    text-align: center;
+    padding: 1rem 0.5rem;
+}
+
+.absurd-poll-row {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.absurd-poll-row__label {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    font-family: 'PT Serif', Georgia, serif;
+    line-height: 1.28;
+    color: var(--ink-color);
+}
+
+.absurd-poll-row__text {
+    flex: 1;
+    min-width: 0;
+    font-size: clamp(0.58rem, 0.62vw, 0.74rem);
+}
+
+.absurd-poll-row__meta {
+    flex-shrink: 0;
+    font-family: 'Old Standard TT', Georgia, serif;
+    font-size: clamp(0.48rem, 0.5vw, 0.58rem);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    color: var(--muted-ink);
+}
+
+.absurd-poll-row__bar {
+    display: block;
+    height: clamp(4px, 0.4vw, 6px);
+    background: var(--ink-color);
+    min-width: 0;
+    transition: width 0.35s ease;
 }
 
 .section-title {
@@ -727,7 +811,7 @@ body {
     .citizen-lens-panel,
     .everyone-edits-panel,
     .legends-section,
-    .whats-on-panel {
+    .absurd-poll-panel {
         grid-column: auto;
         grid-row: auto;
         min-height: 260px;

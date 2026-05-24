@@ -60,7 +60,25 @@ This page only reads public data:
 ```text
 sessions
 frontpage_articles
+interviews
+absurd_poll_counts
 ```
+
+### Absurd voting
+
+The bottom-right panel shows live results for **Absurd voting**. Votes are submitted from the Typewriter editor (`/editor` → **Absurd voting** tab) and synced via Supabase Realtime.
+
+Create the tables using `Typewriter/scripts/supabase-absurd-poll.sql` (creates `sessions` + `absurd_poll_counts` if missing), then confirm Realtime is enabled for `absurd_poll_counts`.
+
+If SQL fails with `relation "public.sessions" does not exist`, you are on an old copy of the script — use the updated file that creates `sessions` first.
+
+For local testing without Supabase, point the page at the Typewriter server:
+
+```text
+http://localhost:5500/?poll_api=http://localhost:3000
+```
+
+Or set `TYPEWRITER_POLL_API` in `supabase-config.js`.
 
 Unity writes data through the protected Supabase Edge Function:
 

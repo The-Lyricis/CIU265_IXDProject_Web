@@ -17,7 +17,12 @@
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { io } from 'https://cdn.socket.io/4.7.5/socket.io.esm.min.js';
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from './supabase-config.js';
+import {
+    ABSURD_POLL_TABLE,
+    SUPABASE_ANON_KEY,
+    SUPABASE_URL,
+    TYPEWRITER_POLL_API,
+} from './supabase-config.js';
 
 // ---------- DOM ----------
 
@@ -28,6 +33,22 @@ const legendsGrid = document.getElementById('legends-grid');
 const statusEl = document.getElementById('realtime-status');
 const dateEl = document.getElementById('current-date');
 const sessionEl = document.getElementById('session-status');
+const absurdPollResults = document.getElementById('absurd-poll-results');
+
+const ABSURD_POLL_OPTIONS = [
+    'The pigeons are getting fatter and fatter.',
+    'All cinnamon rolls served during fika in Sweden are replaced with wasabi-flavored ones.',
+    'The government might accidentally fund this installation and ask us to actually build it.',
+    'The rain has applied for permanent residency.',
+    'The urban sculptures still refuse to talk.',
+    "It's not the driver but the tram itself doesn't want to wait for people.",
+    "Everyone's camera is proactively choosing dramatic angles on purpose.",
+    'Someone might believe this poll is for real.',
+];
+
+/** @type {number[]} */
+let absurdPollCounts = Array(ABSURD_POLL_OPTIONS.length).fill(0);
+let absurdPollPollTimerId = null;
 
 // ---------- Config ----------
 
@@ -687,12 +708,207 @@ function subscribeToInterviews() {
         });
 }
 
+// ---------- Absurd voting (terminal poll) ----------
+
+function getTypewriterPollApiBase() {
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = params.get('poll_api');
+    if (fromQuery) return fromQuery.replace(/\/$/, '');
+    if (TYPEWRITER_POLL_API) return String(TYPEWRITER_POLL_API).replace(/\/$/, '');
+
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+        return 'http://localhost:3000';
+    }
+    return '';
+}
+
+function normalizeAbsurdPollCounts(raw) {
+    const next = Array(ABSURD_POLL_OPTIONS.length).fill(0);
+    if (Array.isArray(raw)) {
+        for (let i = 0; i < ABSURD_POLL_OPTIONS.length; i += 1) {
+            const n = Number(raw[i]);
+            next[i] = Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+        }
+        return next;
+    }
+    if (raw?.options && Array.isArray(raw.options)) {
+        raw.options.forEach((opt) => {
+            const id = Number(opt.id);
+            const votes = Number(opt.votes);
+            if (id >= 0 && id < next.length && Number.isFinite(votes) && votes >= 0) {
+                next[id] = Math.floor(votes);
+            }
+        });
+        return next;
+    }
+    return next;
+}
+
+function applyAbsurdPollState(state) {
+    absurdPollCounts = normalizeAbsurdPollCounts(state?.counts || state);
+    renderAbsurdPoll();
+}
+
+function renderAbsurdPoll() {
+    if (!absurdPollResults) return;
+
+    const total = absurdPollCounts.reduce((sum, n) => sum + n, 0);
+    if (total === 0) {
+        absurdPollResults.innerHTML =
+            '<p class="absurd-poll-empty">Awaiting absurd votes from the editor desk…</p>';
+        return;
+    }
+
+    const percentages = ABSURD_POLL_OPTIONS.map((_, index) => {
+        const votes = absurdPollCounts[index] || 0;
+        return total > 0 ? Math.round((votes / total) * 100) : 0;
+    });
+    const maxPct = Math.max(...percentages, 0);
+
+    absurdPollResults.innerHTML = ABSURD_POLL_OPTIONS.map((text, index) => {
+        const pct = percentages[index];
+        const barWidth = maxPct > 0 && pct > 0 ? Math.round((pct / maxPct) * 100) : 0;
+        return `
+            <div class="absurd-poll-row">
+                <div class="absurd-poll-row__label">
+                    <span class="absurd-poll-row__text">${escapeHtml(text)}</span>
+                    <span class="absurd-poll-row__meta">${pct}%</span>
+                </div>
+                <div class="absurd-poll-row__bar" style="width:${barWidth}%" aria-hidden="true"></div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function loadAbsurdPollFromApi() {
+    const base = getTypewriterPollApiBase();
+    if (!base) return false;
+    try {
+        const res = await fetch(`${base}/api/absurd-poll`, { cache: 'no-store' });
+        if (!res.ok) return false;
+        const data = await res.json();
+        applyAbsurdPollState(data);
+        return true;
+    } catch (err) {
+        console.warn('[absurd-poll] API fetch failed:', err.message, `(base: ${base})`);
+        return false;
+    }
+}
+
+function startAbsurdPollApiPolling() {
+    const base = getTypewriterPollApiBase();
+    if (!base) return;
+    if (absurdPollPollTimerId) clearInterval(absurdPollPollTimerId);
+    loadAbsurdPollFromApi();
+    absurdPollPollTimerId = setInterval(loadAbsurdPollFromApi, 2000);
+}
+
+async function loadAbsurdPollFromSupabase() {
+    if (!supabase || !currentSessionId) {
+        renderAbsurdPoll();
+        return;
+    }
+
+    const { data, error } = await supabase
+        .from(ABSURD_POLL_TABLE)
+        .select('option_id, vote_count')
+        .eq('session_id', currentSessionId);
+
+    if (error) {
+        console.warn('[absurd-poll] Supabase load failed:', error.message);
+        renderAbsurdPoll();
+        return;
+    }
+
+    const next = Array(ABSURD_POLL_OPTIONS.length).fill(0);
+    (data || []).forEach((row) => {
+        const id = Number(row.option_id);
+        const votes = Number(row.vote_count);
+        if (id >= 0 && id < next.length && Number.isFinite(votes) && votes >= 0) {
+            next[id] = Math.floor(votes);
+        }
+    });
+    absurdPollCounts = next;
+    renderAbsurdPoll();
+}
+
+function subscribeToAbsurdPoll() {
+    if (!supabase) return;
+
+    const changes = {
+        event: '*',
+        schema: 'public',
+        table: ABSURD_POLL_TABLE,
+    };
+    if (isSessionPinned && currentSessionId) {
+        changes.filter = `session_id=eq.${currentSessionId}`;
+    }
+
+    supabase
+        .channel(isSessionPinned ? `absurd-poll:${currentSessionId}` : 'absurd-poll:latest')
+        .on('postgres_changes', changes, (payload) => {
+            const row = payload.new || payload.old;
+            if (!row) return;
+
+            if (!isSessionPinned && row.session_id && row.session_id !== currentSessionId) {
+                currentSessionId = row.session_id;
+                setSessionStatus();
+                loadAbsurdPollFromSupabase();
+                return;
+            }
+            if (isSessionPinned && row.session_id !== currentSessionId) return;
+
+            const id = Number(row.option_id);
+            const votes = Number(row.vote_count);
+            if (id >= 0 && id < absurdPollCounts.length && Number.isFinite(votes)) {
+                absurdPollCounts[id] = Math.max(0, Math.floor(votes));
+                renderAbsurdPoll();
+            } else {
+                loadAbsurdPollFromSupabase();
+            }
+        })
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('[absurd-poll] subscribed to realtime');
+            }
+        });
+}
+
+function initAbsurdPollSocket() {
+    const base = getTypewriterPollApiBase();
+    if (!base || typeof io === 'undefined') return;
+
+    try {
+        const pollSocket = io(base, { transports: ['websocket', 'polling'] });
+        pollSocket.on('poll:update', (state) => {
+            applyAbsurdPollState(state);
+        });
+        pollSocket.on('connect', () => {
+            console.log('[absurd-poll] live sync via Typewriter at', base);
+            loadAbsurdPollFromApi();
+        });
+        pollSocket.on('connect_error', (err) => {
+            console.warn('[absurd-poll] socket connect_error:', err.message, '— is npm start running on', base, '?');
+        });
+    } catch (err) {
+        console.warn('[absurd-poll] socket failed:', err.message);
+    }
+}
+
 // ---------- Supabase init ----------
+
+async function initAbsurdPollChannels() {
+    renderAbsurdPoll();
+    startAbsurdPollApiPolling();
+    initAbsurdPollSocket();
+}
 
 async function initSupabaseSide() {
     if (!isSupabaseConfigured()) {
         console.warn('[supabase] supabase-config.js not filled in; supabase channels disabled.');
         renderArticles();
+        await initAbsurdPollChannels();
         return;
     }
     try {
@@ -701,14 +917,18 @@ async function initSupabaseSide() {
         setSessionStatus();
         await loadExistingArticles();
         await loadUnlockedLegends();
+        await loadAbsurdPollFromSupabase();
         subscribeToArticles();
         subscribeToInterviews();
+        subscribeToAbsurdPoll();
         setStatus('NEWSROOM LIVE');
     } catch (err) {
         console.error('[supabase]', err);
         renderArticles();
         setStatus('NEWSROOM OFFLINE');
     }
+
+    await initAbsurdPollChannels();
 }
 
 // ---------- Init ----------
@@ -717,6 +937,7 @@ function init() {
     formatDate();
     renderBest();
     renderInitialGrid();
+    renderAbsurdPoll();
     bindNewsListScrollControls();
     initCitizenLensSocket();
     initSupabaseSide();
