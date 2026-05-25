@@ -73,7 +73,7 @@ let isSessionPinned = false;
 let newsScrollResizeObserver = null;
 let newsScrollResizeTimer = null;
 /** Pixels per second — drives CSS loop duration (segmentHeight / speed) */
-const NEWS_SCROLL_PX_PER_SEC = 10;
+const NEWS_SCROLL_PX_PER_SEC = 7;
 
 // ---------- Small helpers ----------
 
@@ -117,9 +117,9 @@ function escapeHtml(value) {
         .replaceAll("'", '&#039;');
 }
 
-function formatTime(value) {
-    if (!value) return 'Filed moments ago';
-    return `Filed ${new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+function formatDispatchTime(value) {
+    if (!value) return '--:--';
+    return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 function isMetadataSubtitle(text) {
@@ -169,50 +169,43 @@ function getArticleContent(item) {
     };
 }
 
-function getDispatchMetaLine(item) {
-    const timePart = formatTime(item.created_at);
-    const generated = getGeneratedDraft(item);
-    const label = generated?.label || item.tag;
-    if (label && /archive-inspired/i.test(label)) {
-        return `${timePart} · Archive-inspired dispatch`;
-    }
-    if (item.subtitle && !isMetadataSubtitle(item.subtitle)) {
-        return `${timePart} · ${String(item.subtitle).trim()}`;
-    }
-    return `${timePart} · Public dispatch`;
+function getNewsScrollWindow() {
+    return articleList?.querySelector('.visitor-news-full-window') || null;
 }
 
 function getNewsLoopTrack() {
-    return articleList?.querySelector('.visitor-news-track') || null;
+    return getNewsScrollWindow()?.querySelector('.visitor-news-track') || null;
 }
 
 function getNewsLoopSegmentHeight() {
-    const set = articleList?.querySelector('.visitor-news-set');
+    const set = getNewsScrollWindow()?.querySelector('.visitor-news-set');
     return set ? set.offsetHeight : 0;
 }
 
 function shouldNewsAutoScroll() {
-    if (!articleList) return false;
+    const scrollWindow = getNewsScrollWindow();
+    if (!scrollWindow) return false;
     const segment = getNewsLoopSegmentHeight();
-    return segment > articleList.clientHeight + 1;
+    return segment > scrollWindow.clientHeight + 1;
 }
 
 function syncNewsAutoScroll() {
-    const list = articleList;
+    const scrollWindow = getNewsScrollWindow();
     const track = getNewsLoopTrack();
-    if (!list || !track) return;
+    if (!scrollWindow || !track) return;
 
     track.classList.remove('visitor-news-track--animate');
     track.style.removeProperty('--loop-duration');
 
     const apply = () => {
-        if (!articleList) return;
+        const currentWindow = getNewsScrollWindow();
+        if (!currentWindow) return;
         const currentTrack = getNewsLoopTrack();
         if (!currentTrack) return;
 
         const segment = getNewsLoopSegmentHeight();
-        if (segment > articleList.clientHeight + 1) {
-            const durationSec = Math.max(segment / NEWS_SCROLL_PX_PER_SEC, 20);
+        if (segment > currentWindow.clientHeight + 1) {
+            const durationSec = Math.max(segment / NEWS_SCROLL_PX_PER_SEC, 28);
             currentTrack.style.setProperty('--loop-duration', `${durationSec}s`);
             currentTrack.classList.add('visitor-news-track--animate');
         }
@@ -428,17 +421,20 @@ function subscribeToCitizenLensPhotos() {
 
 // ---------- Everyone Edits side list (Supabase) ----------
 
-function buildVisitorNewsItemHtml(article) {
+function buildVisitorNewsFullItemHtml(article) {
     const { headline, body } = getArticleContent(article);
     const displayHeadline = headline || 'Untitled dispatch';
-    const displayBody = body || '';
+    const displayBody = body || 'Awaiting full text from the newsroom.';
+    const dispatchTime = formatDispatchTime(article.created_at);
     const highlightClass = highlightArticleIds.has(article.id) ? ' is-new' : '';
     const safeId = escapeHtml(article.id);
 
     return `
-        <article class="visitor-news-item${highlightClass}" data-article-id="${safeId}">
-            <div class="news-meta">${escapeHtml(getDispatchMetaLine(article))}</div>
-            <h3 class="news-headline">${escapeHtml(displayHeadline)}</h3>
+        <article class="visitor-news-full-item${highlightClass}" data-article-id="${safeId}">
+            <div class="visitor-news-full-item__top">
+                <h3 class="news-headline">${escapeHtml(displayHeadline)}</h3>
+                <span class="news-time">${escapeHtml(dispatchTime)}</span>
+            </div>
             <p class="news-body">${escapeHtml(displayBody)}</p>
         </article>
     `;
@@ -450,7 +446,7 @@ function renderArticles() {
 
     if (articles.length === 0) {
         articleList.innerHTML = `
-            <article class="visitor-news-item visitor-news-item--empty">
+            <article class="visitor-news-empty">
                 <h3 class="news-headline">Newsroom awaiting dispatches</h3>
                 <p class="news-body">Published typewriter stories will appear here as they are filed to the public feed.</p>
             </article>
@@ -459,11 +455,14 @@ function renderArticles() {
         return;
     }
 
-    const itemsHtml = articles.map(buildVisitorNewsItemHtml).join('');
+    const fullItemsHtml = articles.map(buildVisitorNewsFullItemHtml).join('');
+
     articleList.innerHTML = `
-        <div class="visitor-news-track">
-            <div class="visitor-news-set">${itemsHtml}</div>
-            <div class="visitor-news-set visitor-news-set--loop" aria-hidden="true">${itemsHtml}</div>
+        <div class="visitor-news-full-window">
+            <div class="visitor-news-track">
+                <div class="visitor-news-set">${fullItemsHtml}</div>
+                <div class="visitor-news-set visitor-news-set--loop" aria-hidden="true">${fullItemsHtml}</div>
+            </div>
         </div>
     `;
 
@@ -480,7 +479,9 @@ function addArticle(article) {
     if (isNew) {
         setTimeout(() => {
             highlightArticleIds.delete(article.id);
-            const el = articleList?.querySelector(`[data-article-id="${CSS.escape(article.id)}"]`);
+            const el = articleList?.querySelector(
+                `.visitor-news-full-item[data-article-id="${CSS.escape(article.id)}"]`
+            );
             el?.classList.remove('is-new');
         }, 2600);
     }
@@ -750,6 +751,19 @@ function applyAbsurdPollState(state) {
     renderAbsurdPoll();
 }
 
+function buildAbsurdPollRowHtml(row, maxPct) {
+    const barWidth = maxPct > 0 && row.pct > 0 ? Math.round((row.pct / maxPct) * 100) : 0;
+    return `
+        <div class="absurd-poll-row">
+            <div class="absurd-poll-row__label">
+                <span class="absurd-poll-row__text">${escapeHtml(row.text)}</span>
+                <span class="absurd-poll-row__meta">${row.pct}%</span>
+            </div>
+            <div class="absurd-poll-row__bar" style="width:${barWidth}%" aria-hidden="true"></div>
+        </div>
+    `;
+}
+
 function renderAbsurdPoll() {
     if (!absurdPollResults) return;
 
@@ -765,20 +779,18 @@ function renderAbsurdPoll() {
         return total > 0 ? Math.round((votes / total) * 100) : 0;
     });
     const maxPct = Math.max(...percentages, 0);
+    const rows = ABSURD_POLL_OPTIONS.map((text, index) => ({
+        text,
+        pct: percentages[index],
+    }));
+    const midpoint = Math.ceil(rows.length / 2);
+    const columns = [rows.slice(0, midpoint), rows.slice(midpoint)].filter((column) => column.length > 0);
 
-    absurdPollResults.innerHTML = ABSURD_POLL_OPTIONS.map((text, index) => {
-        const pct = percentages[index];
-        const barWidth = maxPct > 0 && pct > 0 ? Math.round((pct / maxPct) * 100) : 0;
-        return `
-            <div class="absurd-poll-row">
-                <div class="absurd-poll-row__label">
-                    <span class="absurd-poll-row__text">${escapeHtml(text)}</span>
-                    <span class="absurd-poll-row__meta">${pct}%</span>
-                </div>
-                <div class="absurd-poll-row__bar" style="width:${barWidth}%" aria-hidden="true"></div>
-            </div>
-        `;
-    }).join('');
+    absurdPollResults.innerHTML = columns.map((column) => `
+        <div class="absurd-poll-column">
+            ${column.map((row) => buildAbsurdPollRowHtml(row, maxPct)).join('')}
+        </div>
+    `).join('');
 }
 
 async function loadAbsurdPollFromApi() {
