@@ -507,6 +507,11 @@ body {
 
 .visitor-news-set--loop {
     pointer-events: none;
+    display: none;
+}
+
+.visitor-news-track--animate .visitor-news-set--loop {
+    display: block;
 }
 
 .visitor-news-item {

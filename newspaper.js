@@ -486,6 +486,13 @@ function addArticle(article) {
     }
 }
 
+function removeArticle(articleId) {
+    if (!articleId) return;
+    articlesById.delete(articleId);
+    highlightArticleIds.delete(articleId);
+    renderArticles();
+}
+
 async function loadCurrentSession() {
     const urlSessionId = getSessionIdFromUrl();
     if (urlSessionId) {
@@ -529,7 +536,7 @@ async function loadExistingArticles() {
 
 function subscribeToArticles() {
     const changes = {
-        event: 'INSERT',
+        event: '*',
         schema: 'public',
         table: 'frontpage_articles',
     };
@@ -540,13 +547,22 @@ function subscribeToArticles() {
     supabase
         .channel(isSessionPinned ? `frontpage-articles:${currentSessionId}` : 'frontpage-articles:latest')
         .on('postgres_changes', changes, (payload) => {
-            if (isSessionPinned && payload.new.session_id !== currentSessionId) return;
-            if (!isSessionPinned && payload.new.session_id !== currentSessionId) {
-                currentSessionId = payload.new.session_id;
+            const row = payload.new || payload.old;
+            if (!row) return;
+
+            if (isSessionPinned && row.session_id !== currentSessionId) return;
+            if (!isSessionPinned && payload.eventType !== 'DELETE' && row.session_id !== currentSessionId) {
+                currentSessionId = row.session_id;
                 articlesById.clear();
                 setSessionStatus();
             }
-            addArticle(payload.new);
+
+            if (payload.eventType === 'DELETE') {
+                removeArticle(row.id);
+                return;
+            }
+
+            addArticle(row);
         })
         .subscribe();
 }
@@ -560,9 +576,9 @@ function subscribeToArticles() {
 //   data-intro       - short bio paragraph
 //   data-photo       - portrait image path (optional)
 //
-// On page load we query interviews for the current session and unlock any cards
-// whose npc_id has already been recorded. After that we subscribe to inserts on
-// the interviews table and unlock matching cards live.
+// On page load we query interviews for the current session and sync the cards.
+// After that we subscribe to changes on the interviews table so resets/delete
+// events can relock the wall as well.
 
 function findLegendCard(subjectId) {
     if (!subjectId || !legendsGrid) return null;
@@ -595,32 +611,27 @@ function initLegendImages() {
     });
 }
 
-function unlockLegend(subjectId) {
-    if (!subjectId) return;
-    if (unlockedSubjectIds.has(subjectId)) return;
-
-    const card = findLegendCard(subjectId);
-    if (!card) {
-        // No matching card on this page: cache the id anyway so we don't
-        // keep retrying on every realtime echo.
-        unlockedSubjectIds.add(subjectId);
-        console.warn(`[legends] No card found for subject_id="${subjectId}"`);
-        return;
+function resetLegendCard(card) {
+    if (!card) return;
+    const lockedSrc = card.dataset.lockedImg || '';
+    if (lockedSrc) {
+        setLegendImage(card, lockedSrc, card.dataset.name || '');
     }
+    card.classList.remove('unlocked', 'flickering');
+    card.classList.add('locked');
+}
 
-    unlockedSubjectIds.add(subjectId);
+function syncUnlockedLegends(subjectIds) {
+    if (!legendsGrid) return;
 
-    // Swap the locked image for the unlocked one.
-    const unlockedSrc = card.dataset.unlockedImg || '';
-    if (unlockedSrc) setLegendImage(card, unlockedSrc, card.dataset.name || '');
+    unlockedSubjectIds.clear();
+    legendsGrid.querySelectorAll('.legend-card').forEach((card) => {
+        resetLegendCard(card);
+    });
 
-    // Brief flicker so newly unlocked cards visually announce themselves,
-    // then switch the persistent state class.
-    card.classList.add('flickering');
-    setTimeout(() => {
-        card.classList.remove('locked', 'flickering');
-        card.classList.add('unlocked');
-    }, 450);
+    subjectIds.forEach((subjectId) => {
+        instantUnlock(subjectId);
+    });
 }
 
 async function loadUnlockedLegends() {
@@ -640,10 +651,10 @@ async function loadUnlockedLegends() {
     (data || []).forEach((row) => {
         if (row.npc_id && !seen.has(row.npc_id)) {
             seen.add(row.npc_id);
-            // Skip the announce-flicker for historical rows: reveal immediately.
-            instantUnlock(row.npc_id);
         }
     });
+
+    syncUnlockedLegends(seen);
 }
 
 function instantUnlock(subjectId) {
@@ -663,7 +674,7 @@ function subscribeToInterviews() {
     if (!supabase) return;
 
     const changes = {
-        event: 'INSERT',
+        event: '*',
         schema: 'public',
         table: 'interviews',
     };
@@ -674,18 +685,18 @@ function subscribeToInterviews() {
     supabase
         .channel(isSessionPinned ? `interviews:${currentSessionId}` : 'interviews:latest')
         .on('postgres_changes', changes, (payload) => {
-            const row = payload.new;
+            const row = payload.new || payload.old;
             if (!row || !row.npc_id) return;
 
             // Same session-tracking behaviour as the article feed: if we
             // aren't pinned, latch on to the session of the first row we see.
-            if (!isSessionPinned && row.session_id !== currentSessionId) {
+            if (!isSessionPinned && payload.eventType !== 'DELETE' && row.session_id !== currentSessionId) {
                 currentSessionId = row.session_id;
                 setSessionStatus();
             }
             if (isSessionPinned && row.session_id !== currentSessionId) return;
 
-            unlockLegend(row.npc_id);
+            loadUnlockedLegends();
         })
         .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
@@ -847,6 +858,11 @@ function subscribeToAbsurdPoll() {
                 return;
             }
             if (isSessionPinned && row.session_id !== currentSessionId) return;
+
+            if (payload.eventType === 'DELETE') {
+                loadAbsurdPollFromSupabase();
+                return;
+            }
 
             const id = Number(row.option_id);
             const votes = Number(row.vote_count);
